@@ -1,0 +1,66 @@
+erDiagram
+    neighbourhoods ||--o{ listings : contains
+    hosts ||--o{ listings : owns
+    listings ||--o{ reviews : receives
+    listings ||--o{ calendar : "has availability"
+    listings }o..o{ noise_zones : "spatial join (150 m buffer)"
+
+    neighbourhoods {
+        string neighbourhood PK
+        int district_number
+        geometry geometry
+    }
+
+    hosts {
+        bigint host_id PK
+        string host_name "masked"
+        text host_about "embedded + BM25"
+        boolean host_is_superhost
+        date host_since
+        int host_listings_count
+        float host_response_rate
+    }
+
+    listings {
+        bigint listing_id PK
+        bigint host_id FK
+        string neighbourhood FK
+        text name "embedded + BM25"
+        text description "embedded + BM25"
+        text neighborhood_overview "embedded + BM25"
+        string room_type
+        int accommodates
+        int bedrooms
+        numeric price "base price at snapshot"
+        text_array amenities
+        float review_scores_rating "plus sub-scores"
+        float latitude
+        float longitude
+        string lnight_road_band "derived"
+        string lnight_rail_band "derived"
+    }
+
+    reviews {
+        bigint review_id PK
+        bigint listing_id FK
+        date date
+        bigint reviewer_id
+        string reviewer_name "masked"
+        text comments "embedded + BM25"
+    }
+
+    calendar {
+        bigint listing_id PK, FK
+        date date PK
+        boolean available
+        int minimum_nights
+        int maximum_nights
+    }
+
+    noise_zones {
+        int zone_id PK
+        string source "road or rail"
+        string indicator "Lnight"
+        string db_band
+        geometry geometry
+    }

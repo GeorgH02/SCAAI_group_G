@@ -1,0 +1,80 @@
+flowchart TD
+    UI["Web UI<br/>chat streaming · citation drawer · guardrail status"]
+    API["FastAPI backend<br/>async SSE · structured telemetry"]
+
+    subgraph IN["Input guardrails"]
+        direction LR
+        INJ["Injection guard<br/>Llama-Guard 3"]
+        TOP["Topic gate<br/>domain classifier"]
+        PII["PII masking<br/>Presidio + spaCy de/en"]
+        INJ --> TOP --> PII
+    end
+
+    REJ["Refusal<br/>no LLM call"]
+    ROUTER["Query router<br/>structured · semantic · geo · multi-hop"]
+
+    subgraph CTX["Context construction (read-only actions)"]
+        SQL["Text-to-SQL<br/>read-only DB role"]
+        HYB["Hybrid search<br/>BM25 + dense, RRF"]
+        RR["Reranker<br/>bge-reranker-v2-m3"]
+        PG[("PostgreSQL + PostGIS + pg_search<br/>listings · hosts · reviews · calendar<br/>neighbourhoods · noise_zones<br/>BM25 index")]
+        VDB[("Vector DB<br/>bge-m3 chunk embeddings")]
+        SQL --> PG
+        SQL -- "listing_ids (multi-hop)" --> HYB
+        HYB -- "BM25" --> PG
+        HYB -- "dense" --> VDB
+        HYB --> RR
+    end
+
+    ASM["Context assembly<br/>SQL rows + review chunks with primary keys"]
+    LLM["Local inference server<br/>llama.cpp / vLLM · Qwen 2.5 7B<br/>FP16 · Q8_0 · Q4_K_M"]
+
+    subgraph OUTG["Output guardrails"]
+        direction LR
+        FAITH["Faithfulness<br/>NLI per sentence, ungrounded removed"]
+        CITE["Citation mapper<br/>claim → review_id / listing_id / SQL key"]
+        LEAK["PII leak check<br/>re-mask output"]
+        FAITH --> CITE --> LEAK
+    end
+
+    OUT["Streamed answer + citations<br/>SSE to Web UI"]
+
+    subgraph ING["Offline ingestion"]
+        AIR[("Inside Airbnb Vienna<br/>listings · reviews · calendar · neighbourhoods")]
+        NOISE[("Strategic noise map<br/>Lden / Lnight GeoPackage")]
+        PREP["Preprocessing<br/>parse · clean · PII mask · chunk"]
+        EMB["Embedding<br/>bge-m3"]
+        SPATIAL["Spatial join<br/>ST_DWithin 150 m buffer"]
+        AIR --> PREP --> EMB
+        NOISE --> SPATIAL
+    end
+
+    TEL[("Telemetry<br/>TTFT · latency · tokens/s<br/>retrieval time · guard events")]
+
+    UI --> API --> IN
+    IN -- "blocked" --> REJ
+    IN -- "passed" --> ROUTER
+    ROUTER --> SQL
+    ROUTER --> HYB
+    SQL --> ASM
+    RR --> ASM
+    ASM --> LLM --> OUTG --> OUT
+
+    PREP --> PG
+    EMB --> VDB
+    SPATIAL --> PG
+
+    API -.-> TEL
+    IN -.-> TEL
+    LLM -.-> TEL
+    OUTG -.-> TEL
+
+    classDef guard fill:#E1F5EE,stroke:#0F6E56,color:#085041
+    classDef core fill:#EEEDFE,stroke:#534AB7,color:#3C3489
+    classDef infra fill:#F1EFE8,stroke:#5F5E5A,color:#2C2C2A
+    classDef reject fill:#FCEBEB,stroke:#A32D2D,color:#791F1F
+
+    class INJ,TOP,PII,FAITH,CITE,LEAK guard
+    class ROUTER,SQL,HYB,RR,ASM,LLM core
+    class UI,API,OUT,PG,VDB,AIR,NOISE,PREP,EMB,SPATIAL,TEL infra
+    class REJ reject
