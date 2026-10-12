@@ -1,0 +1,1 @@
+-- Startup schema that is loaded at the first startup of the Postgres db
