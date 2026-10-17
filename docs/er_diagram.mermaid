@@ -1,4 +1,12 @@
 erDiagram
+    %% Application tables live in database vienna_stay, schema vienna_stay_assistant.
+    %% Five source tables and ingestion_runs are implemented by 20-schema.sql/load_sql.py.
+    %% Noise zones/bands and BM25 below remain planned; no noise data is loaded.
+    ingestion_runs ||--o{ neighbourhoods : provenance
+    ingestion_runs ||--o{ hosts : provenance
+    ingestion_runs ||--o{ listings : provenance
+    ingestion_runs ||--o{ reviews : provenance
+    ingestion_runs ||--o{ calendar : provenance
     neighbourhoods ||--o{ listings : contains
     hosts ||--o{ listings : owns
     listings ||--o{ reviews : receives
@@ -13,8 +21,8 @@ erDiagram
 
     hosts {
         bigint host_id PK
-        string host_name "masked"
-        text host_about "embedded + BM25"
+        string host_name "fixed placeholder"
+        text host_about "masked; search planned"
         boolean host_is_superhost
         date host_since
         int host_listings_count
@@ -25,17 +33,18 @@ erDiagram
         bigint listing_id PK
         bigint host_id FK
         string neighbourhood FK
-        text name "embedded + BM25"
-        text description "embedded + BM25"
-        text neighborhood_overview "embedded + BM25"
+        text name "masked; search planned"
+        text description "masked; dense indexed separately"
+        text neighborhood_overview "masked; search planned"
         string room_type
         int accommodates
-        int bedrooms
+        numeric bedrooms
         numeric price "base price at snapshot"
         text_array amenities
         float review_scores_rating "plus sub-scores"
         float latitude
         float longitude
+        geography location "generated WGS84 point"
         string lnight_road_band "derived"
         string lnight_rail_band "derived"
     }
@@ -44,9 +53,8 @@ erDiagram
         bigint review_id PK
         bigint listing_id FK
         date date
-        bigint reviewer_id
-        string reviewer_name "masked"
-        text comments "embedded + BM25"
+        text comments "masked; dense indexed separately"
+        string language
     }
 
     calendar {
@@ -63,4 +71,12 @@ erDiagram
         string indicator "Lnight"
         string db_band
         geometry geometry
+    }
+
+    ingestion_runs {
+        uuid load_id PK
+        date snapshot_date
+        timestamptz completed_at
+        jsonb config "source hashes and settings"
+        jsonb validation "committed validation report"
     }

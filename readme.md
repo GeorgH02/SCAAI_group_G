@@ -1,55 +1,48 @@
 # Vienna Stay Assistant
 
-Vienna accommodation assistant using the **2026-09-17** snapshot from
-[Inside Airbnb](https://insideairbnb.com/get-the-data/), licensed under
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Vienna accommodation project using the **2026-09-17** snapshot from
+[Inside Airbnb](https://insideairbnb.com/get-the-data/) ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
+SQL and vector ingestion are implemented; the chat application is still planned.
 
-Requires **Python 3.11** and **Docker with Docker Compose**. Run from the project directory in PowerShell.
+## Setup and run
 
-After setup, open [run_pipeline.ipynb](run_pipeline.ipynb) in VS Code or Jupyter,
-select the `.venv` Python kernel, start Docker Desktop, and choose **Run All**.
-It starts the databases, downloads data, and loads vectors in order.
-
-## Setup
+Requires **Python 3.11** and **Docker Desktop with Compose**. From the project folder:
 
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-docker compose up -d
 ```
 
-## Download and load data
+Start Docker Desktop, open [run_pipeline.ipynb](run_pipeline.ipynb), select the
+`.venv` kernel, and choose **Run All**. It starts databases, downloads data, and
+loads Qdrant vectors and PostgreSQL tables. First-time model downloads and full
+imports can take time.
+
+- `LIMIT = 10`: sample imports; use `None` for full imports.
+- `SQL_REPLACE = False`: protects existing SQL data; set `True` to replace it.
+- If vectors are already loaded, run configuration/startup cells, then the SQL section.
+
+## Database access (HeidiSQL or similar)
+
+With Docker services running, create a **PostgreSQL (TCP/IP)** connection:
+
+| Setting | Value |
+| --- | --- |
+| Host | `127.0.0.1` |
+| User | `postgres` |
+| Password | `postgres` |
+| Port | `5432` |
+| Database | `vienna_stay` |
+| Schema | `vienna_stay_assistant` |
+
+Expand `vienna_stay_assistant` to see the project tables. Qdrant has a separate
+[dashboard](http://localhost:6333/dashboard).
+
+## Tests and shutdown
 
 ```powershell
-.\.venv\Scripts\python.exe download_data.py
-.\.venv\Scripts\python.exe load_vectors.py
-```
-
-The loader masks PII and embeds listing descriptions and reviews from the last
-24 months using BGE-M3. The first run downloads model weights. Successful loads
-write the collection name and summary to `derived/vectors/`.
-Use `load_vectors.py --help` for options.
-Embedding automatically uses CUDA when available, otherwise CPU. Override with
-`--device cpu` or `--device cuda`; the selected device is printed at startup.
-
-## Local databases
-
-- PostgreSQL/PostGIS: `localhost:5432`, database `vienna_stay`, user/password `postgres`.
-- Qdrant: [dashboard](http://localhost:6333/dashboard).
-
-The chat application and SQL ingestion are not implemented yet.
-
-Stop services while keeping stored data:
-
-```powershell
+py -3.11 -m unittest discover -s tests -v
 docker compose down
 ```
 
-Stop services and deleting stored data:
-```powershell
-docker compose down -v
-```
-
-```powershell
-docker compose up -d
-```
+Shutdown preserves stored data. Adding `-v` deletes the database volumes.
