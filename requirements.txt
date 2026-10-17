@@ -1,0 +1,10 @@
+qdrant-client==1.19.1
+sentence-transformers==6.1.0
+presidio-analyzer==2.2.364
+spacy==3.8.16
+langdetect==1.0.9
+ipykernel==7.4.0
+
+# PII detection models (official spaCy releases).
+en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl
+de-core-news-lg @ https://github.com/explosion/spacy-models/releases/download/de_core_news_lg-3.8.0/de_core_news_lg-3.8.0-py3-none-any.whl

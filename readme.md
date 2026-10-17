@@ -1,29 +1,55 @@
 # Vienna Stay Assistant
 
-Install Docker with Docker Compose, then run from the project directory:
+Vienna accommodation assistant using the **2026-09-17** snapshot from
+[Inside Airbnb](https://insideairbnb.com/get-the-data/), licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
-```sh
+Requires **Python 3.11** and **Docker with Docker Compose**. Run from the project directory in PowerShell.
+
+After setup, open [run_pipeline.ipynb](run_pipeline.ipynb) in VS Code or Jupyter,
+select the `.venv` Python kernel, start Docker Desktop, and choose **Run All**.
+It starts the databases, downloads data, and loads vectors in order.
+
+## Setup
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 docker compose up -d
-docker compose ps
 ```
 
-- PostgreSQL/PostGIS: `localhost:5432`, database `vienna_stay`, user `postgres`, password `postgres`.
-- Qdrant: [dashboard](http://localhost:6333/dashboard), HTTP port `6333`, gRPC port `6334`; no API key required.
+## Download and load data
 
-This starts the databases and creates an empty SQL schema. The chat application
-and data ingestion are not implemented yet.
-
-To download the source data:
-
-```sh
-python3 download_data.py
+```powershell
+.\.venv\Scripts\python.exe download_data.py
+.\.venv\Scripts\python.exe load_vectors.py
 ```
 
-To stop the services while retaining database data:
+The loader masks PII and embeds listing descriptions and reviews from the last
+24 months using BGE-M3. The first run downloads model weights. Successful loads
+write the collection name and summary to `derived/vectors/`.
+Use `load_vectors.py --help` for options.
+Embedding automatically uses CUDA when available, otherwise CPU. Override with
+`--device cpu` or `--device cuda`; the selected device is printed at startup.
 
-```sh
+## Local databases
+
+- PostgreSQL/PostGIS: `localhost:5432`, database `vienna_stay`, user/password `postgres`.
+- Qdrant: [dashboard](http://localhost:6333/dashboard).
+
+The chat application and SQL ingestion are not implemented yet.
+
+Stop services while keeping stored data:
+
+```powershell
 docker compose down
 ```
 
-Existing PostgreSQL volumes keep their original credentials; the defaults above
-apply when initializing a new volume.
+Stop services and deleting stored data:
+```powershell
+docker compose down -v
+```
+
+```powershell
+docker compose up -d
+```

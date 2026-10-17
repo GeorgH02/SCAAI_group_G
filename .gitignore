@@ -1,2 +1,6 @@
 /.idea/
 /data/
+/.venv/
+/derived/
+__pycache__/
+*.pyc

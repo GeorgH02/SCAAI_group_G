@@ -40,7 +40,7 @@ flowchart TD
     OUT["Streamed answer + citations<br/>SSE to Web UI"]
 
     subgraph ING["Offline ingestion"]
-        AIR[("Inside Airbnb Vienna<br/>listings · reviews · calendar · neighbourhoods")]
+        AIR[("Inside Airbnb Vienna · 2026-09-17 snapshot<br/>listings · reviews · calendar · neighbourhoods")]
         NOISE[("Strategic noise map<br/>Lden / Lnight GeoPackage")]
         PREP["Preprocessing<br/>parse · clean · PII mask · chunk"]
         EMB["Embedding<br/>bge-m3"]
