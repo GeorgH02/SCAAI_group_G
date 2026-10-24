@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from data_setup.load_vectors import chunks, clean_text, documents, is_cancellation, parse_args, prepare, Masker, load, select_device
+from data_setup.load_vectors import chunks, clean_text, documents, is_cancellation, parse_args, prepare, Masker, load, select_device, resolve_model_revision, MODEL
 
 
 class CharacterTokenizer:
@@ -17,6 +17,28 @@ class CharacterTokenizer:
 
 
 class LoaderTests(unittest.TestCase):
+    def test_model_revision_uses_loaded_config(self):
+        model = [SimpleNamespace(auto_model=SimpleNamespace(
+            config=SimpleNamespace(_commit_hash='a' * 40)))]
+        self.assertEqual(resolve_model_revision(model, 'main'), 'a' * 40)
+
+    def test_model_revision_falls_back_to_cached_snapshot(self):
+        model = [SimpleNamespace(auto_model=SimpleNamespace(config=SimpleNamespace()))]
+        for requested in ('main', 'a' * 40):
+            with self.subTest(requested=requested), patch(
+                'transformers.utils.hub.cached_file',
+                return_value='/cache/models--BAAI--bge-m3/snapshots/' + 'a' * 40 + '/config.json',
+            ) as cached:
+                self.assertEqual(resolve_model_revision(model, requested), 'a' * 40)
+                cached.assert_called_once_with(MODEL, 'config.json', revision=requested,
+                                               local_files_only=True)
+
+    def test_model_revision_rejects_unresolved_snapshot(self):
+        model = [SimpleNamespace(auto_model=SimpleNamespace(config=SimpleNamespace(_commit_hash=None)))]
+        with patch('transformers.utils.hub.cached_file', return_value='/local/config.json'):
+            with self.assertRaisesRegex(ValueError, 'Unable to resolve embedding model commit'):
+                resolve_model_revision(model, 'main')
+
     def test_device_defaults_to_auto(self):
         self.assertEqual(parse_args([]).device, 'auto')
 

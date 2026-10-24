@@ -33,7 +33,7 @@ flowchart TD
     end
 
     ASM["Context assembly<br/>SQL rows + review chunks with primary keys"]
-    LLM["Local inference server<br/>llama.cpp / vLLM · Qwen 2.5 7B<br/>FP16 · Q8_0 · Q4_K_M"]
+    LLM["Local Ollama server<br/>Qwen 2.5 7B · qwen2.5:7b<br/>OpenAI-compatible API · port 21434"]
 
     subgraph OUTG["Output guardrails"]
         direction LR

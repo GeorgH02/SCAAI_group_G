@@ -1,5 +1,6 @@
 qdrant-client==1.20.0
 psycopg[binary]==3.3.6
+psycopg-binary==3.3.6; implementation_name != "pypy"
 sentence-transformers==6.2.0
 presidio-analyzer==2.2.364
 spacy==3.8.16

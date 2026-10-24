@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -24,13 +24,32 @@ services:
     image: qdrant/qdrant:v1.19.2
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6333:6333"
-      - "127.0.0.1:6334:6334"
+      - "127.0.0.1:6353:6333"
+      - "127.0.0.1:6354:6334"
     volumes:
       - qdrant_data:/qdrant/storage
       - qdrant_snapshots:/qdrant/snapshots
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: "0.0.0.0:11434"
+      OLLAMA_CONTEXT_LENGTH: "16384"
+      OLLAMA_NUM_PARALLEL: "1"
+    ports:
+      - "127.0.0.1:21434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
 volumes:
   postgres_data:
   qdrant_data:
   qdrant_snapshots:
+  ollama_data:

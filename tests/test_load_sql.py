@@ -154,7 +154,7 @@ class SqlIntegrationTests(SqlFixture):
                 self.assertEqual(report['validation']['calendar_coverage']['listings_without_calendar'], 1)
                 self.assertEqual(conn.execute('SELECT ST_SRID(geometry) FROM vienna_stay_assistant.neighbourhoods LIMIT 1').fetchone()[0], 4326)
                 self.assertEqual(conn.execute('SELECT ST_X(location::geometry) FROM vienna_stay_assistant.listings LIMIT 1').fetchone()[0], 16.3)
-                with self.assertRaises(ValueError):
+                with self.assertRaisesRegex(loader.ExistingDataError, 'SQL_REPLACE = True'):
                     loader.ingest(conn, self.args, self.masker, lambda text: 'en')
                 self.args.replace = True
                 report2 = loader.ingest(conn, self.args, self.masker, lambda text: 'en')

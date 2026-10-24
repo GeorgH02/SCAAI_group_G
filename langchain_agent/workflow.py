@@ -29,8 +29,8 @@ When enough evidence is collected, stop calling tools. Your prose is discarded;
 the application returns only tool evidence for later grounding validation.'''
 
 
-def local_model(*, model, base_url='http://127.0.0.1:8080/v1'):
-    """Connect to a separately started loopback llama.cpp tool-capable server."""
+def local_model(*, model='qwen2.5:7b', base_url='http://127.0.0.1:21434/v1'):
+    """Connect to local Ollama using its tool-capable OpenAI-compatible API."""
     parsed = urlparse(base_url)
     if (parsed.scheme != 'http' or parsed.hostname not in ('127.0.0.1', 'localhost', '::1')
             or parsed.username or parsed.password or parsed.query or parsed.fragment

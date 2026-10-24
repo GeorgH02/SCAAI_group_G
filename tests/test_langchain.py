@@ -149,10 +149,62 @@ class LangChainTests(unittest.TestCase):
     @unittest.skipUnless(importlib.util.find_spec('langchain_openai'), 'Requires local transport package')
     def test_local_transport_constructs_without_network(self):
         import asyncio
-        model = local_model(model='test-local-alias')
-        self.assertEqual(str(model.openai_api_base), 'http://127.0.0.1:8080/v1')
+        model = local_model()
+        self.assertEqual(model.model_name, 'qwen2.5:7b')
+        self.assertEqual(str(model.openai_api_base), 'http://127.0.0.1:21434/v1')
         model.http_client.close()
         asyncio.run(model.http_async_client.aclose())
+
+    @unittest.skipUnless(importlib.util.find_spec('langchain_openai'), 'Requires local transport package')
+    def test_ollama_transport_preserves_tool_call_round_trip(self):
+        import asyncio
+        import json
+        import httpx
+        from langchain_core.messages import HumanMessage, ToolMessage
+        from openai import OpenAI
+
+        requests = []
+        def respond(request):
+            self.assertEqual(str(request.url), 'http://127.0.0.1:21434/v1/chat/completions')
+            body = json.loads(request.content)
+            requests.append(body)
+            self.assertEqual(body['model'], 'qwen2.5:7b')
+            self.assertEqual(body['tools'][0]['function']['name'], 'search_listings')
+            message = {'role': 'assistant', 'content': 'Evidence collected.'}
+            if len(requests) == 1:
+                message = {'role': 'assistant', 'content': '', 'tool_calls': [{
+                    'id': 'ollama_call_1', 'type': 'function',
+                    'function': {'name': 'search_listings', 'arguments': '{"district":"Neubau"}'},
+                }]}
+            return httpx.Response(200, json={
+                'id': 'chatcmpl-local', 'object': 'chat.completion', 'created': 0,
+                'model': 'qwen2.5:7b', 'choices': [{
+                    'index': 0, 'message': message,
+                    'finish_reason': 'tool_calls' if len(requests) == 1 else 'stop',
+                }],
+            })
+
+        model = local_model()
+        model.http_client.close()
+        model.http_client = httpx.Client(transport=httpx.MockTransport(respond))
+        model.root_client = OpenAI(
+            api_key='local-only', base_url=str(model.openai_api_base),
+            http_client=model.http_client,
+        )
+        model.client = model.root_client.chat.completions
+        try:
+            agent = model.bind_tools(build_tools(object()))
+            messages = [HumanMessage('Find listings in Neubau')]
+            response = agent.invoke(messages)
+            self.assertEqual(response.tool_calls[0]['args'], {'district': 'Neubau'})
+            messages.extend([response, ToolMessage(content='{"rows": []}',
+                                                   tool_call_id=response.tool_calls[0]['id'])])
+            self.assertEqual(agent.invoke(messages).content, 'Evidence collected.')
+            self.assertEqual(requests[1]['messages'][-1]['role'], 'tool')
+            self.assertEqual(requests[1]['messages'][-1]['tool_call_id'], 'ollama_call_1')
+        finally:
+            model.http_client.close()
+            asyncio.run(model.http_async_client.aclose())
 
 
 if __name__ == '__main__':

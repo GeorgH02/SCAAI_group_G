@@ -29,6 +29,10 @@ class DependencyError(RuntimeError):
     """Actionable startup error safe to display without raw library context."""
 
 
+class ExistingDataError(ValueError):
+    """Existing data requires an explicit replacement request."""
+
+
 def postgres_driver():
     try:
         return import_module('psycopg')
@@ -276,7 +280,11 @@ def ingest(conn, args, masker, language):
         conn.execute((ROOT / 'docker/postgres/init/20-schema.sql').read_text(encoding='utf-8'))
         occupied = any(conn.execute(f'SELECT EXISTS (SELECT 1 FROM {SCHEMA}.{t})').fetchone()[0] for t in TABLES)
         if occupied and not args.replace:
-            raise ValueError('Database contains data; use --replace explicitly')
+            raise ExistingDataError(
+                'Database already contains accommodation data. To replace it, set '
+                'SQL_REPLACE = True in run_pipeline.ipynb and rerun the SQL cell, '
+                'or pass --replace on the command line. To keep it, skip the SQL load.'
+            )
         if occupied:
             # Transactional DELETE avoids TRUNCATE's visibility behavior and never cascades.
             for table in reversed(TABLES):
@@ -340,7 +348,7 @@ def main(argv=None):
     # Standard PG* environment variables are supported when DATABASE_URL is absent.
     dsn = os.getenv('DATABASE_URL', '')
     defaults = {} if dsn else {key: os.getenv(env, default) for key, env, default in (
-        ('host', 'PGHOST', '127.0.0.1'), ('port', 'PGPORT', '5432'), ('dbname', 'PGDATABASE', 'vienna_stay'),
+        ('host', 'PGHOST', '127.0.0.1'), ('port', 'PGPORT', '5433'), ('dbname', 'PGDATABASE', 'vienna_stay'),
         ('user', 'PGUSER', 'postgres'), ('password', 'PGPASSWORD', 'postgres'))}
     # autocommit keeps connectivity checks outside the atomic ingestion transaction.
     with psycopg.connect(dsn, **defaults, connect_timeout=10, autocommit=True) as conn:
@@ -364,6 +372,9 @@ if __name__ == '__main__':
         main()
     except DependencyError as error:
         print(f'SQL load could not start. {error} No database changes were made.', file=sys.stderr)
+        sys.exit(1)
+    except ExistingDataError as error:
+        print(f'SQL load stopped. {error} Existing data is preserved.', file=sys.stderr)
         sys.exit(1)
     except Exception as error:
         # Do not print database errors: COPY context can include text and credentials.

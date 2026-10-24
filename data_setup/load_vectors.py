@@ -241,10 +241,24 @@ def select_device(requested):
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 
+def resolve_model_revision(model, requested):
+    revision = getattr(model[0].auto_model.config, "_commit_hash", None)
+    if not revision:
+        # Some Transformers versions omit _commit_hash from the loaded config.
+        # The cached snapshot path still identifies the downloaded revision.
+        from transformers.utils.hub import cached_file, extract_commit_hash
+
+        config_path = cached_file(MODEL, "config.json", revision=requested, local_files_only=True)
+        revision = extract_commit_hash(config_path, None)
+    if not revision:
+        raise ValueError("Unable to resolve embedding model commit")
+    return revision
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=ROOT / "data")
-    parser.add_argument("--qdrant-url", default="http://localhost:6333")
+    parser.add_argument("--qdrant-url", default="http://localhost:6353")
     parser.add_argument("--device", default="auto",
                         help="auto (CUDA when available, otherwise CPU), cpu, cuda, or another PyTorch device")
     parser.add_argument("--model-revision", default="main", help="Use a commit hash for pinned model weights")
@@ -294,9 +308,7 @@ def main(argv=None):
         raise ValueError("A fast tokenizer with character offsets is required")
     if args.chunk_tokens + model.tokenizer.num_special_tokens_to_add() > model.max_seq_length:
         raise ValueError("Chunk size exceeds the embedding model input length")
-    revision = getattr(model[0].auto_model.config, "_commit_hash", None)
-    if not revision:
-        raise ValueError("Unable to resolve embedding model commit")
+    revision = resolve_model_revision(model, args.model_revision)
     config = {
         "pipeline_version": PIPELINE_VERSION, "snapshot_date": SNAPSHOT_DATE,
         "source_sha256": hashes, "model": MODEL, "model_revision": revision,

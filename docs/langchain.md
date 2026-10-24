@@ -9,7 +9,7 @@ Install the project dependencies, including LangChain, in a Python 3.11 environm
 
 ## Quick inference demo
 
-Start the [local llama.cpp server](llama_server.md) in a separate terminal.
+Start [Ollama and download the model](ollama.md).
 Open [try_agent.ipynb](../try_agent.ipynb) from the project root, select a Python
 kernel with the project dependencies installed, and run its cells in order.
 
@@ -21,7 +21,8 @@ match fictional listing 1 (four guests, EUR 120 in Neubau).
 
 This standalone demo uses no database or Qdrant and adds no dependencies beyond
 the project requirements. It permits at most four model rounds/four tool calls,
-disables LangSmith tracing and uses the loopback client and `vienna-stay` alias.
+disables LangSmith tracing and uses `local_model()`: `qwen2.5:7b` through
+Ollama at `http://127.0.0.1:21434/v1`.
 It has no masking, policy guards or answer validation and is separate from
 `EvidenceWorkflow`; it does not test real retrieval or guard effectiveness.
 
@@ -59,16 +60,16 @@ Execute tools sequentially on that connection. No arbitrary SQL tool is exposed.
 
 ## Local model evidence workflow
 
-Use the Windows/Linux launchers in [local LLM setup](llama_server.md) to start
-the inference server with model alias `vienna-stay`.
+Use the Windows/Linux launchers in [local LLM setup](ollama.md) to start
+Ollama and pull `qwen2.5:7b`.
 
 `EvidenceWorkflow` binds these tools to a LangChain chat model and executes
-multi-step tool calls. `local_model(model=..., base_url=...)` uses ChatOpenAI's
-compatible HTTP transport against an independently running **local llama.cpp**
-server (`http://127.0.0.1:8080/v1` by default). The server/model must support tool
-calling. No server, model weights, GPU configuration or cloud subscription is
-installed by this integration. The helper rejects remote URLs and disables
-environment proxies/redirects; configure the server's model alias explicitly.
+multi-step tool calls. `local_model()` uses ChatOpenAI's compatible HTTP
+transport against Ollama at `http://127.0.0.1:21434/v1`, with `qwen2.5:7b`
+by default. Ollama supports tool calls through this API, so no Ollama-specific
+Python dependency is needed. Override `model` for another downloaded model
+with tool support, or `base_url` for another loopback endpoint ending in `/v1`.
+The helper rejects remote URLs and disables environment proxies and redirects.
 
 Application wiring, once guard implementations exist:
 
