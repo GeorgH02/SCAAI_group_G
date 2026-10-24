@@ -1,6 +1,6 @@
 erDiagram
     %% Application tables live in database vienna_stay, schema vienna_stay_assistant.
-    %% Five source tables and ingestion_runs are implemented by 20-schema.sql/load_sql.py.
+    %% Five source tables and ingestion_runs are implemented by 20-schema.sql and data_setup/load_sql.py.
     %% Noise zones/bands and BM25 below remain planned; no noise data is loaded.
     ingestion_runs ||--o{ neighbourhoods : provenance
     ingestion_runs ||--o{ hosts : provenance

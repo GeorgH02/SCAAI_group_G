@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from uuid import UUID
 
-import queries
+from langchain_agent import queries
 
 
 class QueryValidationTests(unittest.TestCase):
@@ -74,7 +74,7 @@ class QueryValidationTests(unittest.TestCase):
             session = Mock()
             session.fetch.return_value = rows
             return action(session)
-        with patch('queries._run', side_effect=run):
+        with patch('langchain_agent.queries._run', side_effect=run):
             result = queries.check_availability(self.connection, [1, 2, 3, 4], '2026-10-01', '2026-10-02')
         self.assertEqual([r['status'] for r in result['results']],
                          ['available', 'unknown', 'unavailable', 'not_found'])

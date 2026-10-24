@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langsmith import tracing_context
 
-from langchain_tools import build_tools
+from langchain_agent.tools import build_tools
 
 
 class WorkflowError(RuntimeError):

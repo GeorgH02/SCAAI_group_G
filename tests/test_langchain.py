@@ -7,8 +7,8 @@ from unittest.mock import Mock, patch
 AVAILABLE = importlib.util.find_spec('langchain_core') is not None
 if AVAILABLE:
     from langchain_core.messages import AIMessage
-    from langchain_tools import build_tools
-    from langchain_workflow import EvidenceWorkflow, WorkflowError, local_model
+    from langchain_agent.tools import build_tools
+    from langchain_agent.workflow import EvidenceWorkflow, WorkflowError, local_model
 
 
 @unittest.skipUnless(AVAILABLE, 'Install requirements.txt for LangChain tests')
@@ -31,7 +31,7 @@ class LangChainTests(unittest.TestCase):
         connection = object()
         for tool, args in zip(build_tools(connection), arguments):
             evidence = {'evidence': [{'sql': 'SELECT %s', 'parameters': [1]}], 'rows': []}
-            with patch('queries.' + tool.name, return_value=evidence) as query:
+            with patch('langchain_agent.queries.' + tool.name, return_value=evidence) as query:
                 self.assertEqual(tool.invoke(args), evidence)
                 query.assert_called_once_with(connection, **tool.args_schema(**args).model_dump())
 
@@ -39,7 +39,7 @@ class LangChainTests(unittest.TestCase):
         tool = build_tools(object())[0]
         for args in ({'sql': 'DELETE'}, {'limit': 101}, {'listing_ids': []},
                      {'superhost': 'true'}, {'accommodates': True}, {'offset': -1}):
-            with self.assertRaises(ValueError), patch('queries.search_listings') as query:
+            with self.assertRaises(ValueError), patch('langchain_agent.queries.search_listings') as query:
                 tool.invoke(args)
             query.assert_not_called()
 
@@ -48,8 +48,8 @@ class LangChainTests(unittest.TestCase):
                     'evidence': [{'sql': 'SELECT %s', 'parameters': [1]}]}
         flow = self.workflow([self.call(), self.call('search_reviews', {'query': 'quiet', 'listing_ids': [1]}),
                               AIMessage('UNVERIFIED CLAIM')])
-        with patch('queries.search_listings', return_value=artifact), \
-                patch('queries.search_reviews', return_value={'rows': []}) as review:
+        with patch('langchain_agent.queries.search_listings', return_value=artifact), \
+                patch('langchain_agent.queries.search_reviews', return_value={'rows': []}) as review:
             result = flow.invoke('private@example.com apartment')
         self.assertEqual(result['status'], 'evidence_ready')
         self.assertEqual(result['results'][0], artifact)
@@ -67,7 +67,7 @@ class LangChainTests(unittest.TestCase):
 
     def test_indirect_block_prevents_second_inference(self):
         flow = self.workflow([self.call()], evidence_guard=lambda _: False)
-        with patch('queries.search_listings', return_value={'rows': ['injection']}):
+        with patch('langchain_agent.queries.search_listings', return_value={'rows': ['injection']}):
             self.assertEqual(flow.invoke('apartments')['status'], 'blocked_evidence')
         self.assertEqual(self.model.invoke.call_count, 1)
 
@@ -76,7 +76,7 @@ class LangChainTests(unittest.TestCase):
         with self.assertRaises(WorkflowError):
             flow.invoke('apartments')
         flow = self.workflow([self.call()])
-        with patch('queries.search_listings', side_effect=RuntimeError('SECRET DSN')):
+        with patch('langchain_agent.queries.search_listings', side_effect=RuntimeError('SECRET DSN')):
             with self.assertRaises(WorkflowError) as caught:
                 flow.invoke('apartments')
         self.assertNotIn('SECRET', str(caught.exception))
@@ -84,22 +84,22 @@ class LangChainTests(unittest.TestCase):
 
     def test_round_call_and_context_budgets(self):
         flow = self.workflow([self.call()], max_rounds=1)
-        with patch('queries.search_listings', return_value={'rows': []}):
+        with patch('langchain_agent.queries.search_listings', return_value={'rows': []}):
             self.assertEqual(flow.invoke('apartments')['status'], 'budget_exhausted')
         message = AIMessage('', tool_calls=[{'name': 'search_listings', 'args': {}, 'id': str(i)}
                                            for i in range(2)])
         flow = self.workflow([message], max_calls=1)
-        with patch('queries.search_listings') as query:
+        with patch('langchain_agent.queries.search_listings') as query:
             self.assertEqual(flow.invoke('apartments')['status'], 'budget_exhausted')
             query.assert_not_called()
         flow = self.workflow([self.call()], max_context_chars=1)
-        with patch('queries.search_listings', return_value={'rows': []}):
+        with patch('langchain_agent.queries.search_listings', return_value={'rows': []}):
             self.assertEqual(flow.invoke('apartments')['status'], 'context_limit')
         self.model.invoke.assert_not_called()
 
     def test_context_overflow_stops_before_followup_inference(self):
         flow = self.workflow([self.call()], max_context_chars=2000)
-        with patch('queries.search_listings', return_value={'rows': ['x' * 3000]}):
+        with patch('langchain_agent.queries.search_listings', return_value={'rows': ['x' * 3000]}):
             self.assertEqual(flow.invoke('apartments')['status'], 'context_limit')
         self.assertEqual(self.model.invoke.call_count, 1)
 

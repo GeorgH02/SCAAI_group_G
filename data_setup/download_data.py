@@ -12,7 +12,7 @@ from urllib.request import Request, urlopen
 
 SNAPSHOT_DATE = "2026-09-17"
 BASE_URL = f"https://data.insideairbnb.com/austria/vienna/vienna/{SNAPSHOT_DATE}"
-DATA_DIR = Path(__file__).resolve().parent / "data"
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 FILES = (
     ("data/listings.csv.gz", "listings.csv"),
     ("data/calendar.csv.gz", "calendar.csv"),

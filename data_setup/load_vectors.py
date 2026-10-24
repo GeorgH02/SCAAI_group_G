@@ -23,7 +23,7 @@ from pathlib import Path
 
 SNAPSHOT_DATE = "2026-09-17"
 MODEL = "BAAI/bge-m3"
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 PIPELINE_VERSION = 1
 
 

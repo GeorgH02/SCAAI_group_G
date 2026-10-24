@@ -1,6 +1,6 @@
 # Query tools
 
-`queries.py` exposes five Python functions for a future tool-calling assistant.
+`langchain_agent/queries.py` exposes five Python functions for a future tool-calling assistant.
 They execute fixed, parameterized SQL against `vienna_stay_assistant`; they do
 not accept generated SQL or call a language model. No extra dependency beyond
 the existing psycopg requirement is needed.
@@ -18,7 +18,7 @@ queries, database errors, credentials, or text. Database failures raise a generi
 ```python
 import os
 import psycopg
-from queries import (
+from langchain_agent.queries import (
     search_listings, check_availability, compare_host_prices,
     get_host_listings, search_reviews,
 )

@@ -28,6 +28,9 @@ Start an installed llama.cpp server with `.\scripts\start_llm.ps1` (Windows)
 or `bash scripts/start_llm.sh` (Linux). See [local LLM setup](Docs/llama_server.md)
 for installation and options. Stop the server with Ctrl+C.
 
+With the server ready, open [try_agent.ipynb](try_agent.ipynb), select the
+project kernel, and run its cells for a LangChain demo using fictional listings.
+
 ## Database access (HeidiSQL or similar)
 
 With Docker services running, create a **PostgreSQL (TCP/IP)** connection:

@@ -17,7 +17,7 @@ from importlib import import_module
 from importlib.metadata import version
 from pathlib import Path
 
-from load_vectors import ROOT, SNAPSHOT_DATE, Masker, clean_text, documents, file_hash, rows, source_id
+from data_setup.load_vectors import ROOT, SNAPSHOT_DATE, Masker, clean_text, documents, file_hash, rows, source_id
 
 SCHEMA = 'vienna_stay_assistant'
 

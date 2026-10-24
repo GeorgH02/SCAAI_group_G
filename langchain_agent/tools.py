@@ -5,7 +5,7 @@ from typing import Annotated
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, ConfigDict, Field
 
-import queries
+from langchain_agent import queries
 
 ID = Annotated[int, Field(strict=True, gt=0, le=9223372036854775807)]
 IDs = Annotated[list[ID], Field(min_length=1, max_length=100)]

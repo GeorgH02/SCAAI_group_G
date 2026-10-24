@@ -7,12 +7,39 @@ Install the project dependencies, including LangChain, in a Python 3.11 environm
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
+## Quick inference demo
+
+Start the [local llama.cpp server](llama_server.md) in a separate terminal.
+Open [try_agent.ipynb](../try_agent.ipynb) from the project root, select a Python
+kernel with the project dependencies installed, and run its cells in order.
+
+`try_agent.ipynb` uses LangChain to let the local model choose a search tool,
+inspect its result and produce a short answer. It prints tool names, arguments,
+results and the unvalidated answer. Edit `QUESTION` and `DEMO_LISTINGS` in the
+notebook to experiment with **fictional data only**. The default question should
+match fictional listing 1 (four guests, EUR 120 in Neubau).
+
+This standalone demo uses no database or Qdrant and adds no dependencies beyond
+the project requirements. It permits at most four model rounds/four tool calls,
+disables LangSmith tracing and uses the loopback client and `vienna-stay` alias.
+It has no masking, policy guards or answer validation and is separate from
+`EvidenceWorkflow`; it does not test real retrieval or guard effectiveness.
+
+The agent package is `langchain_agent`: `tools.py` contains typed adapters,
+`queries.py` contains the read-only SQL functions, and `workflow.py` contains
+the bounded evidence workflow and local model client. Data preparation lives
+in `data_setup`; invoke its entry points from the project root with
+`python -m data_setup.download_data`, `python -m data_setup.load_vectors`, or
+`python -m data_setup.load_sql`. The root `run_pipeline.ipynb` uses these same
+module entry points with its selected kernel. Data and reports stay in the
+root `data/` and `derived/` folders; schema assets stay in `docker/`.
+
 ## Typed SQL tools (usable without a model)
 
 ```python
 import os
 import psycopg
-from langchain_tools import build_tools
+from langchain_agent.tools import build_tools
 
 # Set DATABASE_URL to a dedicated SELECT-only login. Do not print it.
 with psycopg.connect(os.environ['DATABASE_URL']) as connection:
@@ -46,8 +73,8 @@ environment proxies/redirects; configure the server's model alias explicitly.
 Application wiring, once guard implementations exist:
 
 ```python
-from load_vectors import Masker, clean_text
-from langchain_workflow import EvidenceWorkflow, local_model
+from data_setup.load_vectors import Masker, clean_text
+from langchain_agent.workflow import EvidenceWorkflow, local_model
 
 def gather_evidence(connection, question, *, model_alias, input_guard, evidence_guard):
     masker = Masker()  # Requires both existing spaCy models; failure aborts.

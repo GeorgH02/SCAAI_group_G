@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from load_vectors import chunks, clean_text, documents, is_cancellation, parse_args, prepare, Masker, load, select_device
+from data_setup.load_vectors import chunks, clean_text, documents, is_cancellation, parse_args, prepare, Masker, load, select_device
 
 
 class CharacterTokenizer:

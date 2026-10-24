@@ -9,7 +9,7 @@ from decimal import Decimal
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import load_sql as loader
+from data_setup import load_sql as loader
 
 
 def write_csv(path, records):
@@ -56,7 +56,7 @@ class SqlFixture(unittest.TestCase):
 
 class SqlSourceTests(SqlFixture):
     def test_driver_failure_has_safe_install_instructions(self):
-        with patch('load_sql.import_module', side_effect=ImportError('private library context')):
+        with patch('data_setup.load_sql.import_module', side_effect=ImportError('private library context')):
             with self.assertRaises(loader.DependencyError) as caught:
                 loader.postgres_driver()
         self.assertIn('psycopg[binary]', str(caught.exception))
@@ -145,7 +145,7 @@ class SqlIntegrationTests(SqlFixture):
             self.assertTrue(database.startswith('vsa_test_'), 'Refusing a non-test database')
             conn.execute('CREATE TABLE public.listings (sentinel text)')
             conn.execute("INSERT INTO public.listings VALUES ('unrelated')")
-            with patch('load_sql.version', return_value='test'):
+            with patch('data_setup.load_sql.version', return_value='test'):
                 report = loader.ingest(conn, self.args, self.masker, lambda text: 'en')
                 self.assertEqual(report['validation']['listings'], 2)
                 self.assertEqual(report['validation']['reviews'], 1)
