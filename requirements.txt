@@ -1,10 +1,16 @@
-qdrant-client==1.19.1
+qdrant-client==1.20.0
 psycopg[binary]==3.3.6
-sentence-transformers==6.1.0
+sentence-transformers==6.2.0
 presidio-analyzer==2.2.364
 spacy==3.8.16
 langdetect==1.0.9
 ipykernel==7.4.0
+
+# LangChain orchestration.
+langchain-core==1.7.0
+langchain-openai==1.7.2
+pydantic==2.14.1
+langsmith==0.14.12
 
 # PII detection models (official spaCy releases).
 en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl

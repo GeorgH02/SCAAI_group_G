@@ -1,7 +1,10 @@
 flowchart TD
     %% Application tables live in database vienna_stay, schema vienna_stay_assistant.
     %% Target online architecture. Offline SQL/PostGIS schema and ingestion plus dense
-    %% ingestion are implemented; pg_search/BM25, noise enrichment and online flow remain planned.
+    %% ingestion and five read-only Python query tools are implemented; pg_search/BM25,
+    %% noise enrichment, text-to-SQL and public online flow remain planned.
+    %% langchain_tools.py registers fixed SQL tools; langchain_workflow.py implements
+    %% bounded local tool routing to evidence only, with required injected guards.
     UI["Web UI<br/>chat streaming · citation drawer · guardrail status"]
     API["FastAPI backend<br/>async SSE · structured telemetry"]
 

@@ -2,7 +2,9 @@
 
 Vienna accommodation project using the **2026-09-17** snapshot from
 [Inside Airbnb](https://insideairbnb.com/get-the-data/) ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
-SQL and vector ingestion are implemented; the chat application is still planned.
+SQL/vector ingestion and [read-only query tools](Docs/query_tools.md) are implemented;
+a [LangChain evidence workflow](Docs/langchain.md) is available.
+The chat application is still planned.
 
 ## Setup and run
 
@@ -21,6 +23,10 @@ imports can take time.
 - `LIMIT = 10`: sample imports; use `None` for full imports.
 - `SQL_REPLACE = False`: protects existing SQL data; set `True` to replace it.
 - If vectors are already loaded, run configuration/startup cells, then the SQL section.
+
+Start an installed llama.cpp server with `.\scripts\start_llm.ps1` (Windows)
+or `bash scripts/start_llm.sh` (Linux). See [local LLM setup](Docs/llama_server.md)
+for installation and options. Stop the server with Ctrl+C.
 
 ## Database access (HeidiSQL or similar)
 
