@@ -8,7 +8,7 @@ AVAILABLE = importlib.util.find_spec('langchain_core') is not None
 if AVAILABLE:
     from langchain_core.messages import AIMessage
     from langchain_agent.tools import build_tools
-    from langchain_agent.workflow import EvidenceWorkflow, WorkflowError, local_model
+    from langchain_agent.workflow import EvidenceWorkflow, WorkflowError, local_model, shield_names
 
 
 @unittest.skipUnless(AVAILABLE, 'Install requirements.txt for LangChain tests')
@@ -128,6 +128,13 @@ class LangChainTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 local_model(model='local', base_url=url)
 
+    def test_local_model_timeout_is_bounded_and_applied(self):
+        for bad in (0, -1, 901, True, 60.5, '60'):
+            with self.assertRaises(ValueError):
+                local_model(timeout=bad)
+        self.assertEqual(local_model().request_timeout, 60)
+        self.assertEqual(local_model(timeout=300).request_timeout, 300)
+
     def test_schemas_convert_to_model_tool_definitions(self):
         from langchain_core.utils.function_calling import convert_to_openai_tool
         definitions = [convert_to_openai_tool(tool) for tool in build_tools(object())]
@@ -205,6 +212,37 @@ class LangChainTests(unittest.TestCase):
         finally:
             model.http_client.close()
             asyncio.run(model.http_async_client.aclose())
+
+
+@unittest.skipUnless(AVAILABLE, 'Install requirements.txt for LangChain tests')
+class ShieldNamesTests(unittest.TestCase):
+    @staticmethod
+    def mask(text):  # stands in for a statistical masker that reads place names as people
+        for word in ('Albertina', 'Wien Mitte', 'Anna'):
+            text = text.replace(word, '<PERSON_1>')
+        return text
+
+    def test_listed_names_survive_but_other_text_is_still_masked(self):
+        names = ['Albertina', 'Wien Mitte', 'Wien']
+        shielded = shield_names(self.mask, names)
+        self.assertEqual(shielded('Albertina'), 'Albertina')
+        self.assertEqual(shielded('near Wien Mitte and Albertina, ask Anna'), 'near Wien Mitte and Albertina, ask <PERSON_1>')
+        self.assertEqual(self.mask('Albertina'), '<PERSON_1>')  # control: unshielded masker does change it
+
+    def test_matching_is_case_insensitive_whole_word_and_keeps_original_text(self):
+        shielded = shield_names(self.mask, ['Albertina'])
+        self.assertEqual(shielded('albertina'), 'albertina')
+        self.assertEqual(shielded('Albertinas Anna'), '<PERSON_1>s <PERSON_1>')  # not a whole-word match: the masker still sees it
+
+    def test_longest_name_wins_and_empty_list_is_passthrough(self):
+        shielded = shield_names(self.mask, ['Wien', 'Wien Mitte'])
+        self.assertEqual(shielded('Wien Mitte'), 'Wien Mitte')
+        self.assertIs(shield_names(self.mask, []), self.mask)
+        self.assertIs(shield_names(self.mask, [' ', None]), self.mask)
+
+    def test_a_mangled_token_loses_the_name_instead_of_leaking_text(self):
+        shielded = shield_names(lambda text: '<PERSON_1>', ['Albertina'])
+        self.assertEqual(shielded('Albertina'), '<PERSON_1>')
 
 
 if __name__ == '__main__':

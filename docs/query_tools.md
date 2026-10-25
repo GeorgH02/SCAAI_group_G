@@ -47,7 +47,7 @@ silently broaden a review search to all listings.
 
 | Function | Parameters and behavior |
 | --- | --- |
-| `search_listings` | Optional `district`, `room_type`, minimum `accommodates`, inclusive `min_price`/`max_price`, exact array `amenities` (all required), boolean `superhost`, and `listing_ids`. Stable listing-ID order. |
+| `search_listings` | Optional `district`, `room_type`, minimum `accommodates`, inclusive `min_price`/`max_price`, exact array `amenities` (all required), boolean `superhost`, and `listing_ids`. Also `near_landmark` (curated landmark name, case-insensitive) with `radius_m` (default 500, max 10,000): keeps listings within that distance, adds `distance_m` and sorts nearest first; an unknown name returns `landmark_found: false` and `known_landmarks`. `max_night_noise_db` (30–120) keeps listings whose worst road/rail Lnight band starts below that value; listings without a band are excluded and counted in `missing_noise_exclusions`. Rows include `lnight_road_band`/`lnight_rail_band`. Otherwise stable listing-ID order. |
 | `check_availability` | Required `listing_ids`, `check_in`, `check_out`. Returns one status per distinct ID plus every requested night's calendar evidence. |
 | `compare_host_prices` | Required `district`. Groups by true/false/unknown superhost status and averages listing prices, not host averages. No pagination of contributing IDs. |
 | `get_host_listings` | Required `host_id`. Returns host existence/provenance and that host's listings, sorted by listing ID. |

@@ -4,6 +4,7 @@ Application guards are required dependencies. This is not a public chat endpoint
 """
 
 import json
+import re
 from urllib.parse import urlparse
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
@@ -29,8 +30,13 @@ When enough evidence is collected, stop calling tools. Your prose is discarded;
 the application returns only tool evidence for later grounding validation.'''
 
 
-def local_model(*, model='qwen2.5:7b', base_url='http://127.0.0.1:21434/v1'):
-    """Connect to local Ollama using its tool-capable OpenAI-compatible API."""
+def local_model(*, model='qwen2.5:7b', base_url='http://127.0.0.1:21434/v1', timeout=60):
+    """Connect to local Ollama using its tool-capable OpenAI-compatible API.
+
+    timeout is the per-request limit in seconds; CPU-only inference of large tool results can need more.
+    """
+    if type(timeout) is not int or not 1 <= timeout <= 900:
+        raise ValueError('timeout must be an integer between 1 and 900 seconds')
     parsed = urlparse(base_url)
     if (parsed.scheme != 'http' or parsed.hostname not in ('127.0.0.1', 'localhost', '::1')
             or parsed.username or parsed.password or parsed.query or parsed.fragment
@@ -40,10 +46,33 @@ def local_model(*, model='qwen2.5:7b', base_url='http://127.0.0.1:21434/v1'):
     import httpx
 
     return ChatOpenAI(model=model, base_url=base_url, api_key='local-only',
-                      temperature=0, timeout=60, max_retries=0, max_tokens=1024,
+                      temperature=0, timeout=timeout, max_retries=0, max_tokens=1024,
                       http_socket_options=(),
                       http_client=httpx.Client(trust_env=False, follow_redirects=False),
                       http_async_client=httpx.AsyncClient(trust_env=False, follow_redirects=False))
+
+
+def shield_names(mask, names):
+    """Wrap mask(text) so exact, curated public names (e.g. landmarks) survive PII masking.
+
+    Statistical maskers read many place names as people, which would corrupt tool arguments such as
+    near_landmark. Only the listed names are shielded (case-insensitive, whole words); all other
+    text still goes through mask(). If the masker alters a shield token, the name is lost, not leaked.
+    """
+    names = sorted({n.strip() for n in names if n and n.strip()}, key=len, reverse=True)
+    if not names:
+        return mask
+    pattern = re.compile(r'(?<!\w)(?:' + '|'.join(re.escape(n) for n in names) + r')(?!\w)', re.IGNORECASE)
+
+    def shielded(text):
+        kept = []
+
+        def keep(match):
+            kept.append(match.group(0))
+            return f'SHIELDTOKEN{len(kept) - 1}END'
+        result = mask(pattern.sub(keep, text))
+        return re.sub(r'SHIELDTOKEN(\d+)END', lambda m: kept[int(m.group(1))], result) if isinstance(result, str) else result
+    return shielded
 
 
 class EvidenceWorkflow:

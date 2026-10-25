@@ -212,6 +212,11 @@ def review_records(args, listings, masker, language, stats):
     stats.update({'review_selection_' + key: value for key, value in source_stats.items()})
 
 
+def is_active(row):
+    # Project definition of an active listing: at least one review in the last 12 months.
+    return (row.get('number_of_reviews_ltm') or '0') != '0'
+
+
 def calendar_records(data_dir, listings, all_ids, stats):
     for row in rows(data_dir / 'calendar.csv', ('listing_id', 'date', 'available', 'minimum_nights', 'maximum_nights')):
         stats['calendar_rows_read'] += 1
@@ -221,6 +226,9 @@ def calendar_records(data_dir, listings, all_ids, stats):
             continue
         if lid not in listings:
             stats['calendar_outside_selected_listings'] += 1
+            continue
+        if not is_active(listings[lid]):
+            stats['calendar_inactive_listing_rows_excluded'] += 1
             continue
         yield (lid, date.fromisoformat(row['date']), boolean(row['available']),
                number(row['minimum_nights'], integer=True), number(row['maximum_nights'], integer=True))

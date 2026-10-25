@@ -24,6 +24,12 @@ class QueryValidationTests(unittest.TestCase):
             lambda: queries.search_listings(self.connection, superhost='true'),
             lambda: queries.search_listings(self.connection, accommodates=0),
             lambda: queries.search_listings(self.connection, listing_ids=[]),
+            lambda: queries.search_listings(self.connection, near_landmark='  '),
+            lambda: queries.search_listings(self.connection, near_landmark='Albertina', radius_m=0),
+            lambda: queries.search_listings(self.connection, near_landmark='Albertina', radius_m=True),
+            lambda: queries.search_listings(self.connection, near_landmark='Albertina', radius_m=10001),
+            lambda: queries.search_listings(self.connection, max_night_noise_db=29),
+            lambda: queries.search_listings(self.connection, max_night_noise_db='loud'),
             lambda: queries.get_host_listings(self.connection, True),
             lambda: queries.compare_host_prices(self.connection, ''),
             lambda: queries.check_availability(self.connection, [], '2026-10-01', '2026-10-02'),
@@ -116,6 +122,11 @@ class QueryIntegrationTests(unittest.TestCase):
                  last_scraped, snapshot_date, load_id)
                 VALUES (%s,%s,'Neubau','Entire home/apt',4,%s,ARRAY['Wifi','Kitchen'],
                  '2026-09-19','2026-09-17','00000000-0000-0000-0000-000000000001')''', (lid, hid, price))
+        # Distances from the seeded landmark 'Wien Westbahnhof': ~100 m, ~400 m, ~700 m, ~300 m, unknown.
+        for lid, lat, lon, road, rail in [(1, 48.1974, 16.3363, '50-54', None), (2, 48.2001, 16.3363, '50-54', '60-64'),
+                                          (3, 48.2028, 16.3363, '70-74', None), (4, 48.1965, 16.3403, None, None)]:
+            cls.connection.execute('''UPDATE vienna_stay_assistant.listings SET latitude=%s, longitude=%s,
+                lnight_road_band=%s, lnight_rail_band=%s WHERE listing_id=%s''', (lat, lon, road, rail, lid))
         for lid, day, available, minimum, maximum in [
             (1, '2026-10-01', True, 2, 30), (1, '2026-10-02', True, 1, 30),
             (1, '2026-10-03', False, 1, 30), (2, '2026-10-01', True, 1, 30),
@@ -156,6 +167,47 @@ class QueryIntegrationTests(unittest.TestCase):
         targeted = queries.search_listings(self.connection, listing_ids=[3, 1, 3])
         self.assertEqual([r['listing_id'] for r in targeted['rows']], [1, 3])
         json.dumps(result)
+
+    def test_landmark_distance_filter_sorts_nearest_first(self):
+        result = queries.search_listings(self.connection, near_landmark='Wien Westbahnhof', radius_m=500)
+        self.assertEqual([r['listing_id'] for r in result['rows']], [1, 4, 2])
+        distances = [int(Decimal(r['distance_m'])) for r in result['rows']]
+        self.assertEqual(distances, sorted(distances))
+        self.assertTrue(80 <= distances[0] <= 120, distances)
+        self.assertTrue(result['landmark_found'])
+        self.assertEqual(result['landmark']['name'], 'Wien Westbahnhof')
+        self.assertEqual([r['listing_id'] for r in queries.search_listings(
+            self.connection, near_landmark='wien WESTBAHNHOF', radius_m=150)['rows']], [1])
+        wide = queries.search_listings(self.connection, near_landmark='Wien Westbahnhof', radius_m=1000)
+        self.assertEqual([r['listing_id'] for r in wide['rows']], [1, 4, 2, 3])  # listing 5 has no position
+        json.dumps(result)
+
+    def test_unknown_landmark_lists_known_names_and_is_not_injectable(self):
+        for name in ('Nowhere Station', "x'; DROP TABLE listings; --"):
+            result = queries.search_listings(self.connection, near_landmark=name)
+            self.assertFalse(result['landmark_found'])
+            self.assertEqual(result['rows'], [])
+            self.assertIn('Wien Westbahnhof', result['known_landmarks'])
+            self.assertEqual(len(result['known_landmarks']), 20)
+        self.assertEqual(queries.search_listings(self.connection)['total_matches'], 5)
+
+    def test_night_noise_filter_uses_worst_band_and_reports_exclusions(self):
+        # Bands: 1 -> road 50-54; 2 -> road 50-54 but rail 60-64; 3 -> road 70-74; 4 and 5 have none.
+        quiet = queries.search_listings(self.connection, max_night_noise_db=55)
+        self.assertEqual([r['listing_id'] for r in quiet['rows']], [1])
+        self.assertEqual(quiet['missing_noise_exclusions'], 2)
+        self.assertIn(queries.NOISE_NOTICE, quiet['notices'])
+        self.assertEqual(quiet['rows'][0]['lnight_road_band'], '50-54')
+        edge = queries.search_listings(self.connection, max_night_noise_db=60)  # '60-64' starts AT 60, not below it
+        self.assertEqual([r['listing_id'] for r in edge['rows']], [1])
+        mid = queries.search_listings(self.connection, max_night_noise_db=65)  # rail band of listing 2 now passes
+        self.assertEqual([r['listing_id'] for r in mid['rows']], [1, 2])
+        self.assertEqual(queries.search_listings(self.connection, max_night_noise_db=30)['rows'], [])
+        combined = queries.search_listings(self.connection, near_landmark='Wien Westbahnhof', radius_m=500,
+                                           max_night_noise_db=55)
+        self.assertEqual([r['listing_id'] for r in combined['rows']], [1])
+        self.assertEqual(combined['missing_noise_exclusions'], 1)  # listing 4: inside 500 m, no band
+        self.assertEqual(queries.search_listings(self.connection)['missing_noise_exclusions'], 0)
 
     def test_aggregation_is_listing_weighted_and_fully_citable(self):
         result = queries.compare_host_prices(self.connection, 'Neubau')

@@ -12,6 +12,8 @@ from uuid import UUID
 
 SCHEMA = 'vienna_stay_assistant'
 PRICE_NOTICE = 'Prices are snapshot base prices, not date-specific quotes; no currency conversion is performed.'
+NOISE_NOTICE = ('Night noise is the worst Lnight road/rail band within 150 m of the listing; the filter compares the '
+                'start of the band (e.g. 50-54 starts at 50). Listings with no band (not mapped or noise data not loaded) are excluded.')
 LISTING_COLUMNS = '''l.listing_id, l.host_id, l.neighbourhood, l.name,
     l.room_type, l.accommodates, l.bedrooms, l.price, l.amenities,
     h.host_is_superhost, l.last_scraped, l.snapshot_date,
@@ -130,15 +132,28 @@ def _run(connection, tool, action, notices=()):
 
 def search_listings(connection, *, district=None, room_type=None, accommodates=None,
                     min_price=None, max_price=None, amenities=None, superhost=None,
+                    near_landmark=None, radius_m=500, max_night_noise_db=None,
                     listing_ids=None, limit=20, offset=0):
     """Filter listings; capacity is a minimum, price bounds are inclusive.
 
     Amenities must all match stored array values exactly. Missing prices are
-    excluded only when a price bound is supplied. Results sort by listing ID.
+    excluded only when a price bound is supplied. near_landmark (a curated landmark
+    name, case-insensitive) keeps listings within radius_m metres and sorts nearest
+    first. max_night_noise_db keeps listings whose worst road/rail Lnight band starts
+    below that value; listings without any band are excluded and counted. Otherwise
+    results sort by listing ID.
     """
     _integer(limit, 'limit', high=100)
     _integer(offset, 'offset', low=0, high=10000)
+    landmark = _text(near_landmark, 'near_landmark') if near_landmark is not None else None
+    radius = _integer(radius_m, 'radius_m', high=10000)
+    noise_limit = _integer(max_night_noise_db, 'max_night_noise_db', low=30, high=120) \
+        if max_night_noise_db is not None else None
     clauses, params = [], []
+    if landmark is not None:  # the JOIN placeholder comes first in the SQL text
+        params.append(landmark)
+        clauses.append('ST_DWithin(l.location, g.location, %s)')
+        params.append(radius)
     if listing_ids is not None:
         clauses.append('l.listing_id = ANY(%s::bigint[])')
         params.append(_ids(listing_ids))
@@ -160,8 +175,9 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
             raise ValueError('amenities must be a list of at most 50 values')
         clauses.append('l.amenities @> %s::text[]')
         params.append([_text(v, 'amenity') for v in amenities])
-    base = (' FROM vienna_stay_assistant.listings l JOIN vienna_stay_assistant.hosts h USING (host_id) WHERE '
-            + (' AND '.join(clauses) if clauses else 'TRUE'))
+    base = (' FROM vienna_stay_assistant.listings l JOIN vienna_stay_assistant.hosts h USING (host_id)'
+            + (' JOIN vienna_stay_assistant.landmarks g ON lower(g.name) = lower(%s)' if landmark is not None else '')
+            + ' WHERE ' + (' AND '.join(clauses) if clauses else 'TRUE'))
     prices, price_params = [], []
     for value, name, operator in ((min_price, 'min_price', '>='), (max_price, 'max_price', '<=')):
         if value is not None:
@@ -169,13 +185,38 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
             price_params.append(_money(value, name))
     if min_price is not None and max_price is not None and price_params[0] > price_params[1]:
         raise ValueError('min_price must not exceed max_price')
+    if noise_limit is not None:  # GREATEST ignores NULLs, so it is NULL only when both bands are missing
+        prices.append("GREATEST((substring(l.lnight_road_band FROM '[0-9]+'))::integer, "
+                      "(substring(l.lnight_rail_band FROM '[0-9]+'))::integer) < %s")
+        price_params.append(noise_limit)
+    columns = LISTING_COLUMNS + ', l.lnight_road_band, l.lnight_rail_band'
+    order = ' ORDER BY l.listing_id'
+    if landmark is not None:
+        columns += ', round(ST_Distance(l.location, g.location)::numeric) AS distance_m'
+        order = ' ORDER BY distance_m, l.listing_id'
 
     def action(s):
-        missing = s.fetch('SELECT count(*) AS count' + base + ' AND l.price IS NULL', params)[0]['count']
-        sql = 'SELECT ' + LISTING_COLUMNS + base + ((' AND ' + ' AND '.join(prices)) if prices else '')
-        return {**s.page(sql + ' ORDER BY l.listing_id', (*params, *price_params), limit, offset),
-                'missing_price_exclusions': missing if prices else 0}
-    return _run(connection, 'search_listings', action, [PRICE_NOTICE])
+        extra = {}
+        if landmark is not None:
+            found = s.fetch('SELECT name, latitude, longitude FROM vienna_stay_assistant.landmarks '
+                            'WHERE lower(name) = lower(%s)', (landmark,))
+            if not found:
+                names = [r['name'] for r in s.fetch('SELECT name FROM vienna_stay_assistant.landmarks ORDER BY name')]
+                return {'landmark_found': False, 'known_landmarks': names, 'rows': [], 'total_matches': 0,
+                        'limit': limit, 'offset': offset, 'has_more': False,
+                        'missing_price_exclusions': 0, 'missing_noise_exclusions': 0}
+            extra = {'landmark_found': True, 'landmark': found[0], 'radius_m': radius}
+        missing_price = s.fetch('SELECT count(*) AS count' + base + ' AND l.price IS NULL', params)[0]['count'] \
+            if (min_price is not None or max_price is not None) else 0
+        missing_noise = s.fetch('SELECT count(*) AS count' + base + ' AND l.lnight_road_band IS NULL '
+                                'AND l.lnight_rail_band IS NULL', params)[0]['count'] if noise_limit is not None else 0
+        sql = 'SELECT ' + columns + base + ((' AND ' + ' AND '.join(prices)) if prices else '')
+        return {**s.page(sql + order, (*params, *price_params), limit, offset), **extra,
+                'missing_price_exclusions': missing_price, 'missing_noise_exclusions': missing_noise}
+    notices = [PRICE_NOTICE]
+    if noise_limit is not None:
+        notices.append(NOISE_NOTICE)
+    return _run(connection, 'search_listings', action, notices)
 
 
 def get_host_listings(connection, host_id, *, limit=20, offset=0):
