@@ -1,11 +1,7 @@
-"""Load strategic noise zones (Lnight road or rail) and derive per-listing noise bands.
+"""Load Lnight noise zones (road or rail) from a GeoPackage and store the worst band within 150 m per listing.
 
-Reads a GeoPackage with the standard library only (sqlite3 + GPKG geometry header) and
-loads it into vienna_stay_assistant.noise_zones. Then stores the worst band within 150 m
-of each listing (Airbnb offsets coordinates by up to ~150 m) in listings.lnight_<indicator>_band.
-
-Idempotent: zones of the given indicator are replaced and its listing column recomputed.
-Run after data_setup/load_sql.py (a SQL --replace resets the listing bands).
+Airbnb offsets listing coordinates by up to ~150 m, hence the buffer. Rerunnable per indicator.
+A --replace load in load_sql.py clears the bands, so run this again afterwards.
 """
 
 import argparse
@@ -98,7 +94,7 @@ def assign_bands(conn, indicator):
     before = count(conn, f'SELECT count(*) FROM {SCHEMA}.listings WHERE {column} IS NOT NULL')
     log.info('listings.%s non-null before: %d', column, before)
     conn.execute(f'UPDATE {SCHEMA}.listings SET {column} = NULL WHERE {column} IS NOT NULL')
-    # && with a degree margin uses the GiST index; ST_DWithin on geography then measures true metres.
+    # The && test (degree margin) uses the GiST index; ST_DWithin on geography then measures in metres.
     conn.execute(f'''
         UPDATE {SCHEMA}.listings l SET {column} = worst.db_band
         FROM (SELECT DISTINCT ON (l2.listing_id) l2.listing_id, z.db_band

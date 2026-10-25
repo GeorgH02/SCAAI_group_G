@@ -70,9 +70,9 @@ def polygon_blob(x0, y0, x1, y1, srs_id):
 
 @unittest.skipUnless(os.getenv('VSA_TEST_DATABASE_URL'), 'Requires an isolated vsa_test_* PostGIS database')
 class NoiseIntegrationTests(unittest.TestCase):
-    """Real PostGIS run on synthetic zones in EPSG:31287 (Austria Lambert); rolled back at the end.
+    """Spatial join on synthetic zones in EPSG:31287; the transaction is rolled back.
 
-    Each listing sits 5 km from the others, so only its own zones can be within 150 m.
+    Listings are 5 km apart, so only their own zones can be within 150 m.
     """
     SCHEMA = 'vienna_stay_assistant'
 
@@ -128,7 +128,7 @@ class NoiseIntegrationTests(unittest.TestCase):
                 return {i: rows[ids[i]] for i in range(7)}
 
             road_file, rail_file = write_gpkg('road.gpkg', road), write_gpkg('rail.gpkg', rail)
-            for _ in range(2):  # second pass proves a rerun gives the same result
+            for _ in range(2):  # a rerun must give the same result
                 self.assertEqual(noise.load_zones(conn, road_file, 'road_lnight', 'db_band', 'road'), len(road))
                 noise.assign_bands(conn, 'road')
                 self.assertEqual(bands('lnight_road_band'), expected_road)

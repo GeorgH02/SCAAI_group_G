@@ -102,7 +102,7 @@ CREATE INDEX IF NOT EXISTS neighbourhoods_geometry_idx ON vienna_stay_assistant.
 CREATE INDEX IF NOT EXISTS reviews_listing_date_idx ON vienna_stay_assistant.reviews (listing_id, date);
 CREATE INDEX IF NOT EXISTS calendar_available_date_idx ON vienna_stay_assistant.calendar (date, listing_id) WHERE available;
 
--- Noise exposure (strategic noise map, Lnight). Loaded by ingest/noise.py; no FK, linked by spatial join.
+-- Strategic noise map (Lnight), loaded by ingest/noise.py. Linked to listings by spatial join, not a foreign key.
 CREATE TABLE IF NOT EXISTS vienna_stay_assistant.noise_zones (
     zone_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     source text NOT NULL,
@@ -113,11 +113,11 @@ CREATE TABLE IF NOT EXISTS vienna_stay_assistant.noise_zones (
 CREATE INDEX IF NOT EXISTS noise_zones_geometry_idx ON vienna_stay_assistant.noise_zones USING gist (geometry);
 CREATE INDEX IF NOT EXISTS noise_zones_indicator_idx ON vienna_stay_assistant.noise_zones (indicator);
 
--- Worst band within 150 m of the listing; ALTER keeps existing volumes working.
+-- Worst noise band within 150 m of the listing. Added with ALTER so existing databases pick it up.
 ALTER TABLE vienna_stay_assistant.listings ADD COLUMN IF NOT EXISTS lnight_road_band text;
 ALTER TABLE vienna_stay_assistant.listings ADD COLUMN IF NOT EXISTS lnight_rail_band text;
 
--- Curated landmark lookup for queries like "near Westbahnhof". Coordinates: OpenStreetMap (Nominatim), 4 decimals.
+-- Curated landmarks for queries like "near Westbahnhof"; coordinates from OpenStreetMap.
 CREATE TABLE IF NOT EXISTS vienna_stay_assistant.landmarks (
     landmark_id smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name text NOT NULL UNIQUE,

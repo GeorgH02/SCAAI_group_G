@@ -7,7 +7,7 @@ Usage (Postgres and Ollama running, model pulled):
 The workflow returns tool evidence only (model prose is discarded), so this prints which tool the
 model chose, the arguments that reached SQL, and the rows found.
 
-DEMO ONLY: both guards below approve everything. Do not use them in an application.
+Guards: the input guard and the evidence cleaner are the real ones. Set LLAMA_GUARD=1 to add Llama Guard.
 """
 
 import os
@@ -16,6 +16,8 @@ import sys
 import psycopg
 
 from data_setup.load_vectors import Masker, clean_text
+from guardrails.evidence_guard import remove_hostile_rows
+from guardrails.input_guard import InputGuard, bge_m3_embedder, llama_guard
 from langchain_agent.workflow import EvidenceWorkflow, local_model, shield_names
 
 QUESTIONS = [
@@ -50,6 +52,8 @@ def show(question, outcome):
         for row in result.get('rows', [])[:5]:
             print(f'    listing {row["listing_id"]:>10} {row["neighbourhood"]:<22} price {row["price"]}'
                   f' dist {row.get("distance_m")} m | road {row.get("lnight_road_band")} rail {row.get("lnight_rail_band")}')
+        for removed in result.get('rows_removed_by_guard', []):
+            print(f'  removed by evidence guard: {removed}')
         for notice in result.get('notices', []):
             print(f'  notice: {notice}')
 
@@ -58,17 +62,20 @@ def main(questions):
     sys.stdout.reconfigure(encoding='utf-8')
     print('Loading privacy models (German/English)...', flush=True)
     masker = Masker()
+    input_guard = InputGuard(embed=bge_m3_embedder(), safety=llama_guard() if os.getenv('LLAMA_GUARD') == '1' else None)
     with connect() as connection:
         landmarks = [row[0] for row in connection.execute('SELECT name FROM vienna_stay_assistant.landmarks')]
         workflow = EvidenceWorkflow(
             connection, local_model(timeout=400),  # CPU inference is slow for large tool results
-            # Landmark names are public places; without the shield the masker turns many of them into <PERSON_n>.
+            # Without the shield the masker rewrites many landmark names to <PERSON_n>.
             mask=shield_names(lambda text: masker.mask(clean_text(text)), landmarks),
-            input_guard=lambda masked_question: True,   # DEMO ONLY
-            evidence_guard=lambda masked_evidence: True,  # DEMO ONLY
+            input_guard=input_guard,
+            evidence_guard=lambda masked_evidence: True,  # the cleaner below removes hostile rows
+            clean_evidence=remove_hostile_rows,
         )
         for question in questions:
             show(question, workflow.invoke(question))
+            print(f'  input guard: {input_guard.check(question)}')
 
 
 if __name__ == '__main__':

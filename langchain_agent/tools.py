@@ -53,8 +53,8 @@ class ReviewSearch(Page):
     query: Annotated[str, Field(min_length=1, max_length=500)]
     listing_ids: IDs | None = None
     language: Annotated[str, Field(min_length=1, max_length=10)] | None = None
-    since: str = '2024-09-17'
-    until: str = '2026-09-17'
+    since: str | None = None  # None means the default window
+    until: str | None = None
 
 
 DEFINITIONS = (
@@ -87,7 +87,9 @@ def build_tools(connection):
     """
     def bind(name):
         def execute(**arguments):
-            return getattr(queries, name)(connection, **arguments)
+            # a null from the model means "not given"; the query then uses its own default
+            given = {k: v for k, v in arguments.items() if v is not None or k not in ('since', 'until')}
+            return getattr(queries, name)(connection, **given)
         return execute
 
     return [StructuredTool.from_function(

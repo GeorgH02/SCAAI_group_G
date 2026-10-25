@@ -31,10 +31,7 @@ the application returns only tool evidence for later grounding validation.'''
 
 
 def local_model(*, model='qwen2.5:7b', base_url='http://127.0.0.1:21434/v1', timeout=60):
-    """Connect to local Ollama using its tool-capable OpenAI-compatible API.
-
-    timeout is the per-request limit in seconds; CPU-only inference of large tool results can need more.
-    """
+    """Connect to local Ollama using its tool-capable OpenAI-compatible API; timeout is in seconds."""
     if type(timeout) is not int or not 1 <= timeout <= 900:
         raise ValueError('timeout must be an integer between 1 and 900 seconds')
     parsed = urlparse(base_url)
@@ -53,11 +50,9 @@ def local_model(*, model='qwen2.5:7b', base_url='http://127.0.0.1:21434/v1', tim
 
 
 def shield_names(mask, names):
-    """Wrap mask(text) so exact, curated public names (e.g. landmarks) survive PII masking.
+    """Wrap mask(text) so the listed public names (e.g. landmarks) are not masked as people.
 
-    Statistical maskers read many place names as people, which would corrupt tool arguments such as
-    near_landmark. Only the listed names are shielded (case-insensitive, whole words); all other
-    text still goes through mask(). If the masker alters a shield token, the name is lost, not leaked.
+    Matching is case-insensitive on whole words; all other text still goes through mask().
     """
     names = sorted({n.strip() for n in names if n and n.strip()}, key=len, reverse=True)
     if not names:
@@ -81,19 +76,23 @@ class EvidenceWorkflow:
     mask(text) must redact PII locally, without inference on raw text.
     input_guard(masked_question) and evidence_guard(masked_json) must return
     exactly True to proceed. Supply real policy checks before exposing to users.
+    clean_evidence(result) is optional: it returns the tool result with unsafe rows removed.
     No callbacks, tracing, memory or model-written answers are returned.
     """
 
-    def __init__(self, connection, model, *, mask, input_guard, evidence_guard,
+    def __init__(self, connection, model, *, mask, input_guard, evidence_guard, clean_evidence=None,
                  max_rounds=4, max_calls=8, max_context_chars=60000):
         for value, maximum in ((max_rounds, 10), (max_calls, 20), (max_context_chars, 200000)):
             if type(value) is not int or not 1 <= value <= maximum:
                 raise ValueError('Invalid workflow budget')
         if not all(callable(f) for f in (mask, input_guard, evidence_guard)):
             raise ValueError('Masking and both guards are required')
+        if clean_evidence is not None and not callable(clean_evidence):
+            raise ValueError('clean_evidence must be callable')
         self.tools = {tool.name: tool for tool in build_tools(connection)}
         self.model = model.bind_tools(list(self.tools.values()))
         self.mask, self.input_guard, self.evidence_guard = mask, input_guard, evidence_guard
+        self.clean_evidence = clean_evidence
         self.max_rounds, self.max_calls = max_rounds, max_calls
         self.max_context_chars = max_context_chars
 
@@ -143,6 +142,8 @@ class EvidenceWorkflow:
             messages.append(AIMessage(content='', tool_calls=safe_calls))
             for call in safe_calls:
                 result = self.tools[call['name']].invoke(call['args'], config=config)
+                if self.clean_evidence:
+                    result = self.clean_evidence(result)
                 # Keep SQL/IDs intact in the application artifact. Only a redacted
                 # copy is eligible for model context, after an indirect-input guard.
                 context = self._masked(json.dumps(result, ensure_ascii=False))

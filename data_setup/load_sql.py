@@ -213,7 +213,7 @@ def review_records(args, listings, masker, language, stats):
 
 
 def is_active(row):
-    # Project definition of an active listing: at least one review in the last 12 months.
+    # Active listing: at least one review in the last 12 months.
     return (row.get('number_of_reviews_ltm') or '0') != '0'
 
 
