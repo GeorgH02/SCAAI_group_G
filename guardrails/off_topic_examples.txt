@@ -1,0 +1,41 @@
+# Example questions that are NOT about Vienna accommodation (other topics, other cities, other travel services).
+Write a function in JavaScript that reverses a string.
+What will the temperature be this weekend?
+Who is the current president of France?
+How do I cook a good risotto?
+Translate "good morning" into Spanish.
+What are the symptoms of the flu?
+Explain the theory of relativity in simple terms.
+Which smartphone has the best camera?
+How do I invest in index funds?
+Recommend a hotel in Rome near the Colosseum.
+Show me flights from Vienna to London.
+Where can I rent a car in Munich?
+What is the meaning of life?
+Give me a workout plan for beginners.
+Write an email to my boss asking for a day off.
+How many calories are in an apple?
+Who painted the Mona Lisa?
+Suggest a good book about history.
+Solve the equation 2x + 5 = 17.
+What is the best way to learn guitar?
+Schreibe eine Funktion in Java, die eine Zeichenkette umkehrt.
+Wie warm wird es am Wochenende?
+Wer ist der aktuelle Bundeskanzler von Deutschland?
+Wie koche ich ein gutes Risotto?
+Übersetze "guten Morgen" ins Spanische.
+Welche Symptome hat eine Grippe?
+Erkläre die Relativitätstheorie in einfachen Worten.
+Welches Smartphone hat die beste Kamera?
+Wie lege ich Geld in Indexfonds an?
+Empfiehl mir ein Hotel in Rom beim Kolosseum.
+Zeig mir Flüge von Wien nach London.
+Wo kann ich in München ein Auto mieten?
+Was ist der Sinn des Lebens?
+Gib mir einen Trainingsplan für Anfänger.
+Schreibe eine E-Mail an meinen Chef, ich möchte einen Urlaubstag.
+Wie viele Kalorien hat ein Apfel?
+Wer hat die Mona Lisa gemalt?
+Empfiehl mir ein gutes Buch über Geschichte.
+Löse die Gleichung 2x + 5 = 17.
+Wie lerne ich am besten Gitarre?

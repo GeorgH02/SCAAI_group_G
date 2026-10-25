@@ -58,6 +58,24 @@ A healthy container means the API is running; model loading happens on the first
 inference request. Stop it with `docker compose stop ollama`. The launch scripts
 automate these same Compose commands; no host Ollama installation is needed.
 
+For an NVIDIA GPU, start Ollama with the override file instead:
+
+```bash
+docker compose -f compose.yaml -f compose.gpu.yaml up -d ollama
+```
+
+## Guardrails
+
+`guardrails/input_guard.py` checks each question (rules, topic gate, optional Llama Guard) and
+`guardrails/evidence_guard.py` removes tool-result rows that contain injected instructions.
+The topic gate uses `BAAI/bge-m3`, which downloads from Hugging Face on first use (about 2.3 GB).
+Llama Guard is optional (Meta Llama 3.2 license, about 1.6 GB) and is switched on with `LLAMA_GUARD=1`:
+
+```bash
+docker compose exec -T ollama ollama pull llama-guard3:1b
+python try_agent_db.py "Which apartments are within 500 m of Wien Westbahnhof?"
+```
+
 ## Database access (HeidiSQL or similar)
 
 The default host ports avoid the existing services on this Docker host:

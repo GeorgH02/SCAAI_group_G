@@ -24,8 +24,9 @@ def fixture(root):
                    name='Flat of Secret', neighborhood_overview='', neighbourhood_cleansed='Neubau',
                    last_scraped='2026-09-19', latitude='48.2', longitude='16.3', price='$1,234.50',
                    amenities='["Wi-Fi"]', room_type='Entire home/apt', accommodates='4', host_about='Secret lives here',
-                   host_since='2015-01-01', host_response_rate='99%', host_is_superhost='t', host_listings_count='2')
-    write_csv(root / 'listings.csv', [listing, {**listing, 'id': '2', 'price': '', 'description': ''}])
+                   host_since='2015-01-01', host_response_rate='99%', host_is_superhost='t', host_listings_count='2',
+                   number_of_reviews_ltm='3')
+    write_csv(root / 'listings.csv', [listing, {**listing, 'id': '2', 'price': '', 'description': '', 'number_of_reviews_ltm': '0'}])
     review = dict(id='100', listing_id='1', date='2026-01-01', reviewer_name='Secret',
                   comments='Secret says this is a very quiet and comfortable place to stay.')
     write_csv(root / 'reviews.csv', [review, review, {**review, 'id': '101'},
@@ -106,10 +107,20 @@ class SqlSourceTests(SqlFixture):
 
     def test_calendar_parent_filter_and_missing_constraints(self):
         stats = Counter()
-        records = list(loader.calendar_records(self.root, {1: {}}, {1, 2}, stats))
+        records = list(loader.calendar_records(self.root, {1: {'number_of_reviews_ltm': '3'}}, {1, 2}, stats))
         self.assertEqual(records[0], (1, date(2026, 9, 19), True, 2, 30))
         self.assertIsNone(records[1][3])
         self.assertEqual(stats['orphan_calendar_rows_excluded'], 1)
+
+    def test_calendar_active_scope_drops_listings_without_recent_reviews(self):
+        stats = Counter()
+        listings = {1: {'number_of_reviews_ltm': '3'}, 2: {'number_of_reviews_ltm': '0'}}
+        write_csv(self.root / 'calendar.csv', [
+            dict(listing_id='1', date='2026-09-19', available='t', minimum_nights='2', maximum_nights='30'),
+            dict(listing_id='2', date='2026-09-19', available='t', minimum_nights='2', maximum_nights='30')])
+        active = list(loader.calendar_records(self.root, listings, {1, 2}, stats))
+        self.assertEqual([r[0] for r in active], [1])
+        self.assertEqual(stats['calendar_inactive_listing_rows_excluded'], 1)
 
     def test_duplicate_listing_outside_sample_still_fails(self):
         path = self.root / 'listings.csv'

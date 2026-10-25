@@ -29,6 +29,9 @@ class ListingSearch(Page):
     max_price: Annotated[str, Field(max_length=30)] | None = None
     amenities: Annotated[list[Text], Field(max_length=50)] | None = None
     superhost: bool | None = None
+    near_landmark: Text | None = None
+    radius_m: Annotated[int, Field(ge=1, le=10000)] = 500
+    max_night_noise_db: Annotated[int, Field(ge=30, le=120)] | None = None
     listing_ids: IDs | None = None
 
 
@@ -50,14 +53,18 @@ class ReviewSearch(Page):
     query: Annotated[str, Field(min_length=1, max_length=500)]
     listing_ids: IDs | None = None
     language: Annotated[str, Field(min_length=1, max_length=10)] | None = None
-    since: str = '2024-09-17'
-    until: str = '2026-09-17'
+    since: str | None = None  # None means the default window
+    until: str | None = None
 
 
 DEFINITIONS = (
     ('search_listings', ListingSearch,
      'Filter Vienna snapshot listings by exact district/room/amenities, minimum capacity, '
-     'inclusive base prices (decimal strings), superhost status or IDs. Returns paginated evidence.'),
+     'room_type must be exactly one of: Entire home/apt, Private room, Shared room, Hotel room; omit it unless asked. '
+     'inclusive base prices (decimal strings), superhost status or IDs. near_landmark (a curated station or '
+     'sight such as "Wien Westbahnhof"; unknown names return the known list) with radius_m keeps listings within that '
+     'distance, nearest first. max_night_noise_db keeps listings whose worst Lnight band starts below that dB. '
+     'Returns paginated evidence.'),
     ('check_availability', Availability,
      'Check every occupied night in [check_in, check_out), applying total stay length to '
      'each night. Missing coverage is unknown. Snapshot conditions are not live availability.'),
@@ -80,7 +87,9 @@ def build_tools(connection):
     """
     def bind(name):
         def execute(**arguments):
-            return getattr(queries, name)(connection, **arguments)
+            # a null from the model means "not given"; the query then uses its own default
+            given = {k: v for k, v in arguments.items() if v is not None or k not in ('since', 'until')}
+            return getattr(queries, name)(connection, **given)
         return execute
 
     return [StructuredTool.from_function(

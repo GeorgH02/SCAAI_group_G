@@ -8,7 +8,7 @@ AVAILABLE = importlib.util.find_spec('langchain_core') is not None
 if AVAILABLE:
     from langchain_core.messages import AIMessage
     from langchain_agent.tools import build_tools
-    from langchain_agent.workflow import EvidenceWorkflow, WorkflowError, local_model
+    from langchain_agent.workflow import EvidenceWorkflow, WorkflowError, local_model, shield_names
 
 
 @unittest.skipUnless(AVAILABLE, 'Install requirements.txt for LangChain tests')
@@ -33,7 +33,9 @@ class LangChainTests(unittest.TestCase):
             evidence = {'evidence': [{'sql': 'SELECT %s', 'parameters': [1]}], 'rows': []}
             with patch('langchain_agent.queries.' + tool.name, return_value=evidence) as query:
                 self.assertEqual(tool.invoke(args), evidence)
-                query.assert_called_once_with(connection, **tool.args_schema(**args).model_dump())
+                expected = {k: v for k, v in tool.args_schema(**args).model_dump().items()
+                            if v is not None or k not in ('since', 'until')}
+                query.assert_called_once_with(connection, **expected)
 
     def test_schema_rejects_unsafe_or_mistyped_inputs(self):
         tool = build_tools(object())[0]
@@ -64,6 +66,22 @@ class LangChainTests(unittest.TestCase):
         flow = self.workflow([], input_guard=lambda _: False)
         self.assertEqual(flow.invoke('off topic'), {'status': 'blocked', 'results': []})
         self.model.invoke.assert_not_called()
+
+    def test_cleaned_evidence_replaces_the_result_and_the_model_context(self):
+        artifact = {'rows': [{'listing_id': 1, 'name': 'Nice'}, {'listing_id': 2, 'name': 'HOSTILE TEXT'}],
+                    'evidence': [{'sql': 'SELECT %s', 'parameters': [1]}]}
+        cleaned = {**artifact, 'rows': artifact['rows'][:1]}
+        calls = []
+        flow = self.workflow([self.call(), AIMessage('')], clean_evidence=lambda r: calls.append(r) or cleaned)
+        with patch('langchain_agent.queries.search_listings', return_value=artifact):
+            result = flow.invoke('apartments')
+        self.assertEqual(calls, [artifact])
+        self.assertEqual(result['results'], [cleaned])
+        self.assertNotIn('HOSTILE TEXT', str(self.model.invoke.call_args.args[0]))
+
+    def test_clean_evidence_must_be_callable(self):
+        with self.assertRaises(ValueError):
+            self.workflow([], clean_evidence='not callable')
 
     def test_indirect_block_prevents_second_inference(self):
         flow = self.workflow([self.call()], evidence_guard=lambda _: False)
@@ -127,6 +145,20 @@ class LangChainTests(unittest.TestCase):
                     'http://user:password@localhost/v1', 'http://localhost/v1?key=secret'):
             with self.assertRaises(ValueError):
                 local_model(model='local', base_url=url)
+
+    def test_null_dates_from_the_model_use_the_default_window(self):
+        tool = next(t for t in build_tools(object()) if t.name == 'search_reviews')
+        with patch('langchain_agent.queries.search_reviews', return_value={'rows': []}) as query:
+            tool.invoke({'query': 'quiet', 'since': None, 'until': None})
+        self.assertNotIn('since', query.call_args.kwargs)
+        self.assertNotIn('until', query.call_args.kwargs)
+
+    def test_local_model_timeout_is_bounded_and_applied(self):
+        for bad in (0, -1, 901, True, 60.5, '60'):
+            with self.assertRaises(ValueError):
+                local_model(timeout=bad)
+        self.assertEqual(local_model().request_timeout, 60)
+        self.assertEqual(local_model(timeout=300).request_timeout, 300)
 
     def test_schemas_convert_to_model_tool_definitions(self):
         from langchain_core.utils.function_calling import convert_to_openai_tool
@@ -205,6 +237,37 @@ class LangChainTests(unittest.TestCase):
         finally:
             model.http_client.close()
             asyncio.run(model.http_async_client.aclose())
+
+
+@unittest.skipUnless(AVAILABLE, 'Install requirements.txt for LangChain tests')
+class ShieldNamesTests(unittest.TestCase):
+    @staticmethod
+    def mask(text):  # fake masker that reads place names as people
+        for word in ('Albertina', 'Wien Mitte', 'Anna'):
+            text = text.replace(word, '<PERSON_1>')
+        return text
+
+    def test_listed_names_survive_but_other_text_is_still_masked(self):
+        names = ['Albertina', 'Wien Mitte', 'Wien']
+        shielded = shield_names(self.mask, names)
+        self.assertEqual(shielded('Albertina'), 'Albertina')
+        self.assertEqual(shielded('near Wien Mitte and Albertina, ask Anna'), 'near Wien Mitte and Albertina, ask <PERSON_1>')
+        self.assertEqual(self.mask('Albertina'), '<PERSON_1>')  # unshielded, the masker changes it
+
+    def test_matching_is_case_insensitive_whole_word_and_keeps_original_text(self):
+        shielded = shield_names(self.mask, ['Albertina'])
+        self.assertEqual(shielded('albertina'), 'albertina')
+        self.assertEqual(shielded('Albertinas Anna'), '<PERSON_1>s <PERSON_1>')  # no whole-word match, so it is masked
+
+    def test_longest_name_wins_and_empty_list_is_passthrough(self):
+        shielded = shield_names(self.mask, ['Wien', 'Wien Mitte'])
+        self.assertEqual(shielded('Wien Mitte'), 'Wien Mitte')
+        self.assertIs(shield_names(self.mask, []), self.mask)
+        self.assertIs(shield_names(self.mask, [' ', None]), self.mask)
+
+    def test_a_mangled_token_loses_the_name_instead_of_leaking_text(self):
+        shielded = shield_names(lambda text: '<PERSON_1>', ['Albertina'])
+        self.assertEqual(shielded('Albertina'), '<PERSON_1>')
 
 
 if __name__ == '__main__':

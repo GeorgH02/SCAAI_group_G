@@ -1,0 +1,65 @@
+# Example questions about Vienna accommodation. The topic gate compares new questions with these.
+Which entire apartments in Neubau are free on New Year's Eve for four guests under 150 euro?
+What do guests say about noise at night in listings in Leopoldstadt?
+Are superhosts in Josefstadt more expensive than regular hosts on average?
+What have guests been writing about listing 48604277 during the past twelve months?
+Are the complaints about this host's other listings similar?
+How many listings are at most 500 meters away from Wien Hauptbahnhof?
+Show quiet apartments near Stephansdom with a night noise level below 55 dB.
+Is the listing available from 12 to 15 December?
+What is the minimum stay for this apartment?
+Which listings have a washing machine and a balcony?
+Are there private rooms in Favoriten under 60 euro per night?
+How clean do guests rate the apartments in Mariahilf?
+What do reviewers say about the host's communication?
+Which district has the cheapest listings on average?
+Find family-friendly places close to the Prater.
+Where can I stay near Schönbrunn Palace for two people?
+How many listings does this host have in Vienna?
+Are there hotel rooms near the Westbahnhof with good reviews?
+Which listings are good for a stay of one month?
+Do guests mention problems with the heating in winter?
+Welche ganzen Wohnungen in Neubau sind zu Silvester für vier Personen frei und kosten unter 150 Euro?
+Was schreiben Gäste über die Lautstärke in der Nacht in Leopoldstadt?
+Sind Superhosts in der Josefstadt im Schnitt teurer als normale Gastgeber?
+Was haben Gäste im vergangenen Jahr über Unterkunft 48604277 geschrieben?
+Gibt es bei den übrigen Unterkünften des Gastgebers ähnliche Beschwerden?
+Wie viele Unterkünfte sind maximal 500 Meter vom Hauptbahnhof entfernt?
+Zeig mir ruhige Wohnungen in der Nähe des Stephansdoms mit weniger als 55 dB in der Nacht.
+Ist die Wohnung vom 12. bis 15. Dezember verfügbar?
+Wie viele Nächte muss man mindestens buchen?
+Welche Unterkünfte haben eine Waschmaschine und einen Balkon?
+Gibt es Privatzimmer in Favoriten unter 60 Euro pro Nacht?
+Wie sauber finden Gäste die Wohnungen in Mariahilf?
+Was sagen Gäste über die Erreichbarkeit der Gastgeber?
+Welcher Bezirk hat im Durchschnitt die günstigsten Unterkünfte?
+Wo finde ich eine familienfreundliche Unterkunft in der Nähe des Praters?
+Wo kann ich in der Nähe von Schloss Schönbrunn zu zweit übernachten?
+Wie viele Unterkünfte hat dieser Gastgeber in Wien?
+Welche Unterkünfte eignen sich für einen Aufenthalt von einem Monat?
+Berichten Gäste von Problemen mit der Heizung im Winter?
+Gibt es Hotelzimmer in der Nähe des Westbahnhofs mit guten Bewertungen?
+What is the nightly price of the cheapest private rooms in Simmering?
+Which neighbourhood is best for first-time visitors on a small budget?
+Which listings sleep six people and have a full kitchen?
+Are there listings with free parking in Liesing?
+How fast do hosts usually respond to messages?
+What do guests think about the location of listings near the Danube?
+Which apartments are available for the first week of January?
+Are there listings that accept pets in Alsergrund?
+Which listings have the highest ratings for value for money?
+Is the area around Praterstern safe according to reviews?
+Which flats are close to a metro station?
+Do guests like the beds in the apartments around Margareten?
+Wie teuer ist das günstigste Privatzimmer in Simmering pro Nacht?
+Welcher Bezirk eignet sich für Erstbesucher mit kleinem Budget am besten?
+Welche Unterkünfte bieten Platz für sechs Personen und haben eine vollständige Küche?
+Gibt es Unterkünfte mit kostenlosem Parkplatz in Liesing?
+Wie schnell antworten Gastgeber normalerweise auf Nachrichten?
+Was halten Gäste von der Lage der Unterkünfte an der Donau?
+Welche Wohnungen sind in der ersten Januarwoche verfügbar?
+Sind Haustiere in Unterkünften in Alsergrund erlaubt?
+Welche Unterkünfte haben die beste Bewertung beim Preis-Leistungs-Verhältnis?
+Ist die Gegend um den Praterstern laut Bewertungen sicher?
+Welche Wohnungen liegen in der Nähe einer U-Bahn-Station?
+Gefallen Gästen die Betten in den Wohnungen rund um Margareten?
