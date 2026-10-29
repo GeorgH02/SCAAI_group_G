@@ -57,6 +57,21 @@ class ReviewSearch(Page):
     until: str | None = None
 
 
+class HybridSearch(Arguments):
+    query: Annotated[str, Field(min_length=1, max_length=500)]
+    listing_ids: IDs | None = None
+    language: Annotated[str, Field(min_length=1, max_length=10)] | None = None
+    since: str | None = None
+    until: str | None = None
+    limit: Annotated[int, Field(ge=1, le=30)] = 8
+
+
+HYBRID_DESCRIPTION = (
+    'Semantic + keyword search of masked guest reviews (multilingual, German and English), fused and reranked. '
+    'Use for themes or impressions such as "quiet at night", "clean", "helpful host"; pass listing_ids from '
+    'search_listings to search only those listings. Returns review_id, listing_id and chunk_id per row for citations. '
+    'Snapshot ends 2026-09-17.')
+
 DEFINITIONS = (
     ('search_listings', ListingSearch,
      'Filter Vienna snapshot listings by exact district/room/amenities, minimum capacity, '
@@ -79,11 +94,12 @@ DEFINITIONS = (
 )
 
 
-def build_tools(connection):
+def build_tools(connection, retriever=None):
     """Bind tools to one caller-owned idle connection. Use sequential execution.
 
     Results retain the complete queries.py evidence contract. The caller owns
     masking/guards before model use; these adapters perform no model inference.
+    With a retrieval.hybrid.HybridRetriever, a hybrid_search_reviews tool is added.
     """
     def bind(name):
         def execute(**arguments):
@@ -92,6 +108,12 @@ def build_tools(connection):
             return getattr(queries, name)(connection, **given)
         return execute
 
-    return [StructuredTool.from_function(
+    tools = [StructuredTool.from_function(
         func=bind(name), name=name, description=description, args_schema=schema,
     ) for name, schema, description in DEFINITIONS]
+    if retriever is not None:
+        def hybrid(**arguments):
+            return retriever.search(**{k: v for k, v in arguments.items() if v is not None})
+        tools.append(StructuredTool.from_function(
+            func=hybrid, name='hybrid_search_reviews', description=HYBRID_DESCRIPTION, args_schema=HybridSearch))
+    return tools

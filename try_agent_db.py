@@ -8,6 +8,7 @@ The workflow returns tool evidence only (model prose is discarded), so this prin
 model chose, the arguments that reached SQL, and the rows found.
 
 Guards: the input guard and the evidence cleaner are the real ones. Set LLAMA_GUARD=1 to add Llama Guard.
+Set HYBRID=1 to give the model the hybrid review search (needs Qdrant with loaded vectors).
 """
 
 import os
@@ -25,7 +26,16 @@ QUESTIONS = [
     'Find places for 4 guests within 1000 m of Stephansdom that cost at most 150 euro.',
     'Show listings near Albertina where night noise is below 55 dB.',
     'Show listings near the Oper.',
+    'Find apartments in Neubau for 4 guests where reviews say it is quiet at night.',
 ]
+
+
+def hybrid_retriever(connection, embed):
+    from qdrant_client import QdrantClient
+    from retrieval.hybrid import HybridRetriever, bge_reranker, latest_collection
+    collection = os.getenv('QDRANT_COLLECTION') or latest_collection()
+    qdrant = QdrantClient(url=os.getenv('QDRANT_URL', 'http://127.0.0.1:6353'))
+    return HybridRetriever(connection, qdrant, collection, embed, bge_reranker())
 
 
 def connect():
@@ -50,6 +60,9 @@ def show(question, outcome):
         if result.get('landmark_found') is False:
             print(f'  known landmarks: {", ".join(result["known_landmarks"])}')
         for row in result.get('rows', [])[:5]:
+            if 'review_id' in row:
+                print(f'    {row["chunk_id"]:<22} listing {row["listing_id"]:>10} | {" ".join(row["text"].split())[:90]}')
+                continue
             print(f'    listing {row["listing_id"]:>10} {row["neighbourhood"]:<22} price {row["price"]}'
                   f' dist {row.get("distance_m")} m | road {row.get("lnight_road_band")} rail {row.get("lnight_rail_band")}')
         for removed in result.get('rows_removed_by_guard', []):
@@ -62,7 +75,8 @@ def main(questions):
     sys.stdout.reconfigure(encoding='utf-8')
     print('Loading privacy models (German/English)...', flush=True)
     masker = Masker()
-    input_guard = InputGuard(embed=bge_m3_embedder(), safety=llama_guard() if os.getenv('LLAMA_GUARD') == '1' else None)
+    embed = bge_m3_embedder()  # shared by the topic gate and the hybrid search
+    input_guard = InputGuard(embed=embed, safety=llama_guard() if os.getenv('LLAMA_GUARD') == '1' else None)
     with connect() as connection:
         landmarks = [row[0] for row in connection.execute('SELECT name FROM vienna_stay_assistant.landmarks')]
         workflow = EvidenceWorkflow(
@@ -72,6 +86,7 @@ def main(questions):
             input_guard=input_guard,
             evidence_guard=lambda masked_evidence: True,  # the cleaner below removes hostile rows
             clean_evidence=remove_hostile_rows,
+            retriever=hybrid_retriever(connection, embed) if os.getenv('HYBRID') == '1' else None,
         )
         for question in questions:
             show(question, workflow.invoke(question))

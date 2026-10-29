@@ -81,7 +81,7 @@ class EvidenceWorkflow:
     """
 
     def __init__(self, connection, model, *, mask, input_guard, evidence_guard, clean_evidence=None,
-                 max_rounds=4, max_calls=8, max_context_chars=60000):
+                 retriever=None, max_rounds=4, max_calls=8, max_context_chars=60000):
         for value, maximum in ((max_rounds, 10), (max_calls, 20), (max_context_chars, 200000)):
             if type(value) is not int or not 1 <= value <= maximum:
                 raise ValueError('Invalid workflow budget')
@@ -89,7 +89,7 @@ class EvidenceWorkflow:
             raise ValueError('Masking and both guards are required')
         if clean_evidence is not None and not callable(clean_evidence):
             raise ValueError('clean_evidence must be callable')
-        self.tools = {tool.name: tool for tool in build_tools(connection)}
+        self.tools = {tool.name: tool for tool in build_tools(connection, retriever)}
         self.model = model.bind_tools(list(self.tools.values()))
         self.mask, self.input_guard, self.evidence_guard = mask, input_guard, evidence_guard
         self.clean_evidence = clean_evidence

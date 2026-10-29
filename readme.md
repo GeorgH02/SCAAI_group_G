@@ -76,6 +76,36 @@ docker compose exec -T ollama ollama pull llama-guard3:1b
 python try_agent_db.py "Which apartments are within 500 m of Wien Westbahnhof?"
 ```
 
+## Hybrid review search
+
+`retrieval/hybrid.py` searches masked reviews with two signals and merges them:
+
+1. **Dense:** bge-m3 query embedding → Qdrant nearest chunks (filtered by `listing_id` / `language`)
+2. **Lexical:** PostgreSQL full text (`to_tsvector('simple', ...)`, OR over query words, stopwords removed)
+3. **Fusion:** Reciprocal Rank Fusion, `score = Σ 1 / (60 + rank)`, keyed by `review_id`
+4. **Hydration:** rows are loaded from PostgreSQL, which also applies the date window
+5. **Rerank:** `BAAI/bge-reranker-v2-m3` cross-encoder on the top 30 (about 2.3 GB, downloads on first use)
+
+Every row keeps `review_id`, `listing_id` and `chunk_id` for citations. If Qdrant or the reranker
+is down, the search falls back to the remaining signals and says so in `notices`.
+
+```bash
+python try_hybrid.py "quiet at night"                    # search only, no LLM
+python try_hybrid.py "sehr sauber" --listing-ids 123 456 --no-rerank
+HYBRID=1 python try_agent_db.py                           # the LLM gets a hybrid_search_reviews tool
+```
+
+The collection is the newest complete manifest in `derived/vectors/` (override with `QDRANT_COLLECTION`).
+Databases created before this index existed need it once:
+
+```sql
+CREATE INDEX IF NOT EXISTS reviews_comments_fts_idx ON vienna_stay_assistant.reviews
+    USING gin (to_tsvector('simple', comments));
+```
+
+With `LIMIT` sample imports, the vector and SQL samples contain different reviews, so most dense hits
+are dropped at hydration. Use full imports (or a large limit) to judge retrieval quality.
+
 ## Database access (HeidiSQL or similar)
 
 The default host ports avoid the existing services on this Docker host:
