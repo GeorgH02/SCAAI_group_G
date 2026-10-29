@@ -3,6 +3,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field, field_validator
+from api.dependencies import get_workflow
 
 
 app = FastAPI(
@@ -26,12 +27,6 @@ class EvidenceResponse(BaseModel):
     status: str
     results: list[Any]
 
-
-def get_workflow():
-    raise HTTPException(
-        status_code=503,
-        detail="Evidence workflow is not configured",
-    )
 
 
 @app.get("/health")
