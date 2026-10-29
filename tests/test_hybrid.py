@@ -20,8 +20,6 @@ def review(review_id, listing_id=1, day=date(2026, 1, 1), text='text'):
 
 
 class FakeSession:
-    """Answers the two SQL statements of the hybrid search: lexical ranking, then hydration."""
-
     def __init__(self, lexical, stored):
         self.lexical, self.stored, self.evidence, self.calls = lexical, stored, [], []
 
@@ -58,7 +56,7 @@ class HybridSearchTests(unittest.TestCase):
         result, _, _ = self.run_search(dense=[(1, 'review:1:0', 0.9), (2, 'review:2:1', 0.8)],
                                        lexical=[(2, 0.5), (3, 0.4)], stored=stored)
         ids = [row['review_id'] for row in result['rows']]
-        self.assertEqual(ids[0], 2)  # found by both searches, so it wins the fusion
+        self.assertEqual(ids[0], 2)
         self.assertEqual(set(ids), {1, 2, 3})
         top = result['rows'][0]
         self.assertEqual(top['chunk_id'], 'review:2:1')
@@ -102,7 +100,6 @@ class HybridSearchTests(unittest.TestCase):
         self.assertTrue(any('Semantic' in n for n in result['notices']))
 
     def test_hits_outside_the_filters_are_dropped_at_hydration(self):
-        # review 2 is outside the date window, so PostgreSQL does not return it
         result, session, _ = self.run_search(dense=[(1, 'review:1:0', 0.9), (2, 'review:2:0', 0.8)], lexical=[],
                                              stored={1: review(1)}, listing_ids=[1], since='2025-01-01')
         self.assertEqual([r['review_id'] for r in result['rows']], [1])

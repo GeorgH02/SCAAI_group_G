@@ -99,7 +99,6 @@ def build_tools(connection, retriever=None):
 
     Results retain the complete queries.py evidence contract. The caller owns
     masking/guards before model use; these adapters perform no model inference.
-    With a retrieval.hybrid.HybridRetriever, a hybrid_search_reviews tool is added.
     """
     def bind(name):
         def execute(**arguments):

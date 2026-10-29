@@ -1,13 +1,3 @@
-"""Try the hybrid review search directly (no LLM): dense + keyword, RRF fusion, optional reranker.
-
-Usage (Postgres and Qdrant running, vectors and SQL loaded):
-    .venv/bin/python try_hybrid.py "quiet at night"
-    .venv/bin/python try_hybrid.py "sehr sauber" --listing-ids 123 456 --no-rerank
-    .venv/bin/python try_hybrid.py                 # built-in example queries
-
-Set QDRANT_COLLECTION to pick a collection; otherwise the newest complete manifest in derived/vectors is used.
-"""
-
 import argparse
 import os
 import sys

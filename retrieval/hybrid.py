@@ -1,16 +1,3 @@
-"""Hybrid review search: dense (Qdrant, bge-m3) + lexical (PostgreSQL full text), fused with RRF, then reranked.
-
-Flow for one query:
-  1. dense    - embed the query with bge-m3, ask Qdrant for the nearest review chunks
-  2. lexical  - PostgreSQL full-text search (OR over the query words, stopwords removed)
-  3. fuse     - Reciprocal Rank Fusion of both ranked lists, keyed by review_id
-  4. hydrate  - load the fused reviews from PostgreSQL (the source of truth; date/listing filters applied here)
-  5. rerank   - optional cross-encoder (bge-reranker-v2-m3) on the top candidates
-
-Every row keeps review_id, listing_id and chunk_id so answers can cite exact sources.
-If Qdrant or the reranker fails, the search degrades to the remaining signals and says so in `notices`.
-"""
-
 import json
 import re
 from datetime import date
@@ -21,9 +8,8 @@ from langchain_agent import queries
 ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT_END = date(2026, 9, 17)
 DEFAULT_SINCE = '2024-09-17'
-RRF_K = 60  # standard constant from the RRF paper; damps the influence of the very top ranks
+RRF_K = 60
 
-# Words that carry no meaning for search. Without this, "quiet at night" would match almost every review on "at".
 STOPWORDS = set('''
 a an and are as at be but by for from has have i in is it its of on or so that the this to was were with
 we you our my me very really just also all any there their they them he she his her not no
@@ -34,7 +20,6 @@ MAX_TERMS = 12
 
 
 def terms(query):
-    """Query words for the lexical search: lowercase, no stopwords, no tsquery syntax characters."""
     words = []
     for word in re.findall(r'\w+', query.lower()):
         if len(word) > 1 and word not in STOPWORDS and word not in words:
@@ -43,7 +28,6 @@ def terms(query):
 
 
 def rrf(rankings, k=RRF_K):
-    """Reciprocal Rank Fusion: score(d) = sum over lists of 1 / (k + rank). Ranks start at 1."""
     scores = {}
     for ranking in rankings:
         for rank, key in enumerate(ranking, 1):
@@ -52,7 +36,6 @@ def rrf(rankings, k=RRF_K):
 
 
 def latest_collection(directory=ROOT / 'derived' / 'vectors'):
-    """Name of the newest completely loaded Qdrant collection, from the manifests written by load_vectors.py."""
     manifests = []
     for path in Path(directory).glob('*.json'):
         try:
@@ -67,22 +50,12 @@ def latest_collection(directory=ROOT / 'derived' / 'vectors'):
 
 
 def bge_reranker(model='BAAI/bge-reranker-v2-m3', device=None, max_chars=2000):
-    """Return rerank(query, texts) -> scores, using a multilingual cross-encoder."""
     from sentence_transformers import CrossEncoder
     encoder = CrossEncoder(model, device=device, max_length=512)
     return lambda query, texts: [float(s) for s in encoder.predict([(query, t[:max_chars]) for t in texts])]
 
 
 class HybridRetriever:
-    """Bind the stores and models once; call search() per query.
-
-    connection: idle psycopg connection (read-only role recommended)
-    qdrant:     qdrant_client.QdrantClient
-    collection: Qdrant collection name (see latest_collection)
-    embed:      embed(texts) -> normalised vectors (bge-m3, same model as ingestion)
-    rerank:     optional rerank(query, texts) -> scores
-    """
-
     def __init__(self, connection, qdrant, collection, embed, rerank=None, *,
                  dense_k=50, lexical_k=50, rerank_k=30, rrf_k=RRF_K):
         self.connection, self.qdrant, self.collection = connection, qdrant, collection
@@ -90,7 +63,6 @@ class HybridRetriever:
         self.dense_k, self.lexical_k, self.rerank_k, self.rrf_k = dense_k, lexical_k, rerank_k, rrf_k
 
     def _dense(self, query, listing_ids, language):
-        """Ranked review IDs from Qdrant; several chunks of one review collapse to its best chunk."""
         from qdrant_client import models
         must = [models.FieldCondition(key='source_type', match=models.MatchValue(value='review'))]
         if listing_ids:
@@ -121,7 +93,6 @@ class HybridRetriever:
             raise ValueError('Review dates must be ordered and end no later than the snapshot')
 
         notices = []
-        # 1. dense - outside the SQL transaction; a failure here must not stop the lexical search
         try:
             dense_ranked, dense_info = self._dense(query, ids, language)
         except Exception:
@@ -139,7 +110,6 @@ class HybridRetriever:
         where = ' AND '.join(filters)
 
         def action(s):
-            # 2. lexical
             lexical_ranked, lexical_scores = [], {}
             if words:
                 sql = ('''SELECT r.review_id, ts_rank(to_tsvector('simple', r.comments), q.terms) AS lexical_score
@@ -151,10 +121,8 @@ class HybridRetriever:
                     lexical_scores[row['review_id']] = float(row['lexical_score'])
             s.evidence.append({'qdrant': {'collection': self.collection, 'source_type': 'review',
                                           'listing_ids': ids, 'language': language, 'limit': self.dense_k}})
-            # 3. fuse
             fused = rrf([dense_ranked, lexical_ranked], self.rrf_k)
             order = sorted(fused, key=lambda key: (-fused[key], key))
-            # 4. hydrate from PostgreSQL; this also enforces the date window for dense hits
             rows = {}
             if order:
                 sql = ('''SELECT r.review_id, r.listing_id, r.date, r.comments, r.language,
@@ -182,7 +150,6 @@ class HybridRetriever:
                         'rerank_score': None,
                     },
                 })
-            # 5. rerank the top of the fused list
             method = 'hybrid_rrf'
             if self.rerank and candidates:
                 top = candidates[:self.rerank_k]
@@ -201,5 +168,4 @@ class HybridRetriever:
 
         notices += ['Reviews are masked before storage; masking does not guarantee zero PII leakage.',
                     'Lexical signal is PostgreSQL full-text ranking (ts_rank), not BM25.']
-        # _run reads this list after action() ran, so a reranker notice added inside action() is kept
         return queries._run(self.connection, 'hybrid_search_reviews', action, notices)

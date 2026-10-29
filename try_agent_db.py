@@ -8,7 +8,6 @@ The workflow returns tool evidence only (model prose is discarded), so this prin
 model chose, the arguments that reached SQL, and the rows found.
 
 Guards: the input guard and the evidence cleaner are the real ones. Set LLAMA_GUARD=1 to add Llama Guard.
-Set HYBRID=1 to give the model the hybrid review search (needs Qdrant with loaded vectors).
 """
 
 import os
@@ -75,7 +74,7 @@ def main(questions):
     sys.stdout.reconfigure(encoding='utf-8')
     print('Loading privacy models (German/English)...', flush=True)
     masker = Masker()
-    embed = bge_m3_embedder()  # shared by the topic gate and the hybrid search
+    embed = bge_m3_embedder()
     input_guard = InputGuard(embed=embed, safety=llama_guard() if os.getenv('LLAMA_GUARD') == '1' else None)
     with connect() as connection:
         landmarks = [row[0] for row in connection.execute('SELECT name FROM vienna_stay_assistant.landmarks')]

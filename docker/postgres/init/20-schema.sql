@@ -100,7 +100,6 @@ CREATE INDEX IF NOT EXISTS listings_filter_idx ON vienna_stay_assistant.listings
 CREATE INDEX IF NOT EXISTS listings_location_idx ON vienna_stay_assistant.listings USING gist (location);
 CREATE INDEX IF NOT EXISTS neighbourhoods_geometry_idx ON vienna_stay_assistant.neighbourhoods USING gist (geometry);
 CREATE INDEX IF NOT EXISTS reviews_listing_date_idx ON vienna_stay_assistant.reviews (listing_id, date);
--- Full-text index for keyword and hybrid review search (expression must match the queries exactly).
 CREATE INDEX IF NOT EXISTS reviews_comments_fts_idx ON vienna_stay_assistant.reviews
     USING gin (to_tsvector('simple', comments));
 CREATE INDEX IF NOT EXISTS calendar_available_date_idx ON vienna_stay_assistant.calendar (date, listing_id) WHERE available;

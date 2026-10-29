@@ -96,15 +96,6 @@ HYBRID=1 python try_agent_db.py                           # the LLM gets a hybri
 ```
 
 The collection is the newest complete manifest in `derived/vectors/` (override with `QDRANT_COLLECTION`).
-Databases created before this index existed need it once:
-
-```sql
-CREATE INDEX IF NOT EXISTS reviews_comments_fts_idx ON vienna_stay_assistant.reviews
-    USING gin (to_tsvector('simple', comments));
-```
-
-With `LIMIT` sample imports, the vector and SQL samples contain different reviews, so most dense hits
-are dropped at hydration. Use full imports (or a large limit) to judge retrieval quality.
 
 ## Database access (HeidiSQL or similar)
 
