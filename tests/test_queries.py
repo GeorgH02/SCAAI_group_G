@@ -23,6 +23,8 @@ class QueryValidationTests(unittest.TestCase):
             lambda: queries.search_listings(self.connection, amenities='wifi'),
             lambda: queries.search_listings(self.connection, superhost='true'),
             lambda: queries.search_listings(self.connection, accommodates=0),
+            lambda: queries.search_listings(self.connection, bedrooms=-1),
+            lambda: queries.search_listings(self.connection, bedrooms=True),
             lambda: queries.search_listings(self.connection, listing_ids=[]),
             lambda: queries.search_listings(self.connection, near_landmark='  '),
             lambda: queries.search_listings(self.connection, near_landmark='Albertina', radius_m=0),
@@ -116,12 +118,16 @@ class QueryIntegrationTests(unittest.TestCase):
                 (host_id, host_is_superhost, source_listing_id, last_scraped, snapshot_date, load_id)
                 VALUES (%s,%s,1,'2026-09-19','2026-09-17','00000000-0000-0000-0000-000000000001')''',
                 (hid, superhost))
-        for lid, hid, price in [(1, 10, 100), (2, 10, 200), (3, 11, 600), (4, 20, None), (5, 30, 50)]:
+        for lid, hid, price, bedrooms in [
+            (1, 10, 100, 1), (2, 10, 200, 0), (3, 11, 600, 2),
+            (4, 20, None, 1), (5, 30, 50, None),
+        ]:
             cls.connection.execute('''INSERT INTO vienna_stay_assistant.listings
-                (listing_id, host_id, neighbourhood, room_type, accommodates, price, amenities,
+                (listing_id, host_id, neighbourhood, room_type, accommodates, bedrooms, price, amenities,
                  last_scraped, snapshot_date, load_id)
-                VALUES (%s,%s,'Neubau','Entire home/apt',4,%s,ARRAY['Wifi','Kitchen'],
-                 '2026-09-19','2026-09-17','00000000-0000-0000-0000-000000000001')''', (lid, hid, price))
+                VALUES (%s,%s,'Neubau','Entire home/apt',4,%s,%s,ARRAY['Wifi','Kitchen'],
+                 '2026-09-19','2026-09-17','00000000-0000-0000-0000-000000000001')''',
+                (lid, hid, bedrooms, price))
         # Distances from the seeded landmark 'Wien Westbahnhof': ~100 m, ~400 m, ~700 m, ~300 m, unknown.
         for lid, lat, lon, road, rail in [(1, 48.1974, 16.3363, '50-54', None), (2, 48.2001, 16.3363, '50-54', '60-64'),
                                           (3, 48.2028, 16.3363, '70-74', None), (4, 48.1965, 16.3403, None, None)]:
@@ -167,6 +173,12 @@ class QueryIntegrationTests(unittest.TestCase):
         targeted = queries.search_listings(self.connection, listing_ids=[3, 1, 3])
         self.assertEqual([r['listing_id'] for r in targeted['rows']], [1, 3])
         json.dumps(result)
+
+    def test_bedroom_count_is_an_exact_filter(self):
+        result = queries.search_listings(self.connection, bedrooms=1)
+        self.assertEqual([row['listing_id'] for row in result['rows']], [1, 4])
+        self.assertEqual(queries.search_listings(self.connection, bedrooms=0)['rows'][0]['listing_id'], 2)
+        self.assertEqual(queries.search_listings(self.connection, bedrooms=3)['rows'], [])
 
     def test_landmark_distance_filter_sorts_nearest_first(self):
         result = queries.search_listings(self.connection, near_landmark='Wien Westbahnhof', radius_m=500)
