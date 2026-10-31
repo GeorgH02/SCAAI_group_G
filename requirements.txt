@@ -6,6 +6,7 @@ presidio-analyzer==2.2.364
 spacy==3.8.16
 langdetect==1.0.9
 ipykernel==7.4.0
+streamlit==1.51.0
 
 # LangChain orchestration.
 langchain-core==1.7.0

@@ -30,6 +30,28 @@ or `bash scripts/start_llm.sh` (Linux). See [local LLM setup](docs/ollama.md).
 With the server ready, open [try_agent.ipynb](try_agent.ipynb), select the
 project kernel, and run its cells for a LangChain demo using fictional listings.
 
+## Streamlit chat
+
+After running the pipeline and starting Ollama, launch the local chat UI:
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run app1.py
+```
+
+The chat uses the existing guarded SQL workflow plus semantic retrieval from a
+completed Qdrant review-vector collection. The first request loads local privacy
+and embedding models. Set `DATABASE_URL` to a dedicated SELECT-only PostgreSQL
+login when not using the local development database defaults. `QDRANT_URL`
+defaults to `http://127.0.0.1:6353`; use `QDRANT_API_KEY` if configured. Review
+summaries are AI-generated and should be checked against the displayed review
+evidence: citation IDs are checked, but claim entailment is not. Review-text
+filtering is heuristic, so this is a prototype, not a production safety
+guarantee. Listing searches can filter by exact bedroom count; review searches
+recognize month-and-year dates such as “March 2026.” Availability and prices
+describe the **2026-09-17 snapshot**, not live booking data. If a New Year's Eve
+question has no year, choose the intended year in the sidebar; the UI will not
+guess it.
+
 ## Ollama with Docker Compose
 
 From the project folder, start the container and download the model once:

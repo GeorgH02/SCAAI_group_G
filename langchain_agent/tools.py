@@ -25,6 +25,7 @@ class ListingSearch(Page):
     district: Text | None = None
     room_type: Text | None = None
     accommodates: Annotated[int, Field(ge=1, le=1000)] | None = None
+    bedrooms: Annotated[int, Field(ge=0, le=1000)] | None = None
     min_price: Annotated[str, Field(max_length=30)] | None = None
     max_price: Annotated[str, Field(max_length=30)] | None = None
     amenities: Annotated[list[Text], Field(max_length=50)] | None = None
@@ -61,11 +62,13 @@ DEFINITIONS = (
     ('search_listings', ListingSearch,
      'Filter Vienna snapshot listings by exact district/room/amenities, minimum capacity, '
      'room_type must be exactly one of: Entire home/apt, Private room, Shared room, Hotel room; omit it unless asked. '
+     'bedrooms is an exact bedroom-count filter. Use it when the user requests a bedroom count. '
      'inclusive base prices (decimal strings), superhost status or IDs. near_landmark (a curated station or '
      'sight such as "Wien Westbahnhof"; unknown names return the known list) with radius_m keeps listings within that '
      'distance, nearest first. max_night_noise_db keeps listings whose worst Lnight band starts below that dB. '
      'Returns paginated evidence.'),
     ('check_availability', Availability,
+     'Requires explicit check_in and check_out; ask for the checkout date if it is missing, never assume a stay length. '
      'Check every occupied night in [check_in, check_out), applying total stay length to '
      'each night. Missing coverage is unknown. Snapshot conditions are not live availability.'),
     ('compare_host_prices', PriceComparison,

@@ -26,7 +26,7 @@ class LangChainTests(unittest.TestCase):
         return AIMessage('', tool_calls=[{'name': name, 'args': args or {}, 'id': 'call_1'}])
 
     def test_all_adapters_preserve_evidence(self):
-        arguments = [{}, {'listing_ids': [1], 'check_in': '2026-12-31', 'check_out': '2027-01-01'},
+        arguments = [{'bedrooms': 1}, {'listing_ids': [1], 'check_in': '2026-12-31', 'check_out': '2027-01-01'},
                      {'district': 'Neubau'}, {'host_id': 7}, {'query': 'quiet'}]
         connection = object()
         for tool, args in zip(build_tools(connection), arguments):
@@ -40,7 +40,8 @@ class LangChainTests(unittest.TestCase):
     def test_schema_rejects_unsafe_or_mistyped_inputs(self):
         tool = build_tools(object())[0]
         for args in ({'sql': 'DELETE'}, {'limit': 101}, {'listing_ids': []},
-                     {'superhost': 'true'}, {'accommodates': True}, {'offset': -1}):
+                     {'superhost': 'true'}, {'accommodates': True}, {'bedrooms': -1},
+                     {'bedrooms': True}, {'offset': -1}):
             with self.assertRaises(ValueError), patch('langchain_agent.queries.search_listings') as query:
                 tool.invoke(args)
             query.assert_not_called()
