@@ -54,6 +54,20 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         self.workflow.invoke.assert_not_called()
 
+    def test_workflow_failure(self):
+        self.workflow.invoke.side_effect = RuntimeError("Database unavailable")
+
+        response = self.client.post(
+            "/evidence",
+            json={"question": "Find apartments in Vienna"},
+        )
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(
+            response.json(),
+            {"detail": "Evidence workflow failed"},
+        )    
+
 
 if __name__ == "__main__":
     unittest.main()
