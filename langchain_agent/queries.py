@@ -133,7 +133,7 @@ def _run(connection, tool, action, notices=()):
 def search_listings(connection, *, district=None, room_type=None, accommodates=None,
                     min_price=None, max_price=None, amenities=None, superhost=None,
                     near_landmark=None, radius_m=500, max_night_noise_db=None,
-                    listing_ids=None, limit=20, offset=0):
+                    bedrooms=None, listing_ids=None, limit=20, offset=0):
     """Filter listings; capacity is a minimum, price bounds are inclusive.
 
     Amenities must all match stored array values exactly. Missing prices are
@@ -165,6 +165,9 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
     if accommodates is not None:
         clauses.append('l.accommodates >= %s')
         params.append(_integer(accommodates, 'accommodates', high=1000))
+    if bedrooms is not None:
+        clauses.append('l.bedrooms = %s')
+        params.append(_integer(bedrooms, 'bedrooms', low=0, high=1000))
     if superhost is not None:
         if type(superhost) is not bool:
             raise ValueError('superhost must be a boolean')

@@ -1,6 +1,7 @@
 /.idea/
 /data/
 /.venv/
+/.venv311/
 /derived/
 __pycache__/
 *.pyc
