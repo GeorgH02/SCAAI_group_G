@@ -22,7 +22,7 @@ def get_resources():
 
 def get_workflow():
     from data_setup.load_vectors import clean_text
-    from guardrails.evidence_guard import remove_hostile_rows
+    from guardrails.evidence_guard import context_is_safe, remove_hostile_rows
     from langchain_agent.workflow import EvidenceWorkflow, shield_names
     from try_agent_db import connect
     try:
@@ -43,7 +43,7 @@ def get_workflow():
                     landmarks,
                 ),
                 input_guard=guard,
-                evidence_guard=lambda text: True,
+                evidence_guard=context_is_safe,
                 clean_evidence=remove_hostile_rows,
             )
             yield workflow

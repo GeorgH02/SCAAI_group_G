@@ -5,6 +5,7 @@ Results are JSON-compatible; monetary values are decimal strings, never floats.
 No generator, raw CSV access, embedding model, or automatic connection is involved.
 """
 
+import re
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
@@ -14,6 +15,35 @@ SCHEMA = 'vienna_stay_assistant'
 PRICE_NOTICE = 'Prices are snapshot base prices, not date-specific quotes; no currency conversion is performed.'
 NOISE_NOTICE = ('Night noise is the worst Lnight road/rail band within 150 m of the listing; the filter compares the '
                 'start of the band (e.g. 50-54 starts at 50). Listings with no band (not mapped or noise data not loaded) are excluded.')
+NOISE_MISSING_NOTICE = ('No night-noise data is loaded, so the noise filter was not applied; '
+                        'use review search to judge how quiet a listing is.')
+ORDINALS = {word: number for number, word in enumerate((
+    'first second third fourth fifth sixth seventh eighth ninth tenth eleventh twelfth thirteenth fourteenth '
+    'fifteenth sixteenth seventeenth eighteenth nineteenth twentieth twenty-first twenty-second twenty-third').split(), 1)}
+
+
+def _district(value):
+    """District filter: SQL condition and parameter for a name ('Alsergrund', any case) or number.
+
+    Numbers may be written as 9, '9', '9th', '9.', 'ninth' or the postcode '1090'.
+    """
+    if type(value) is int:
+        number = value
+    else:
+        text = _text(value, 'district').strip().lower()
+        postcode = re.fullmatch(r'1(\d{2})0', text)
+        digits = re.fullmatch(r'(\d{1,2})(?:st|nd|rd|th|\.)?(?:\s+(?:district|bezirk))?', text)
+        word = re.fullmatch(r'([a-z-]+)(?:\s+(?:district|bezirk))?', text)
+        number = (int(postcode.group(1)) if postcode else int(digits.group(1)) if digits
+                  else ORDINALS.get(word.group(1)) if word else None)
+        if number is None:
+            return 'lower(l.neighbourhood) = lower(%s)', value.strip()
+    if not 1 <= number <= 23:
+        raise ValueError('district number must be between 1 and 23')
+    return ('l.neighbourhood = (SELECT neighbourhood FROM vienna_stay_assistant.neighbourhoods '
+            'WHERE district_number = %s)'), number
+
+
 LISTING_COLUMNS = '''l.listing_id, l.host_id, l.neighbourhood, l.name,
     l.room_type, l.accommodates, l.bedrooms, l.price, l.amenities,
     h.host_is_superhost, l.last_scraped, l.snapshot_date,
@@ -157,11 +187,13 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
     if listing_ids is not None:
         clauses.append('l.listing_id = ANY(%s::bigint[])')
         params.append(_ids(listing_ids))
-    for value, name, expression in ((district, 'district', 'l.neighbourhood = %s'),
-                                     (room_type, 'room_type', 'l.room_type = %s')):
-        if value is not None:
-            clauses.append(expression)
-            params.append(_text(value, name))
+    if district is not None:
+        expression, value = _district(district)
+        clauses.append(expression)
+        params.append(value)
+    if room_type is not None:
+        clauses.append('l.room_type = %s')
+        params.append(_text(room_type, 'room_type'))
     if accommodates is not None:
         clauses.append('l.accommodates >= %s')
         params.append(_integer(accommodates, 'accommodates', high=1000))
@@ -188,6 +220,7 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
             price_params.append(_money(value, name))
     if min_price is not None and max_price is not None and price_params[0] > price_params[1]:
         raise ValueError('min_price must not exceed max_price')
+    noise_clause = len(prices)
     if noise_limit is not None:  # GREATEST ignores NULLs, so it is NULL only when both bands are missing
         prices.append("GREATEST((substring(l.lnight_road_band FROM '[0-9]+'))::integer, "
                       "(substring(l.lnight_rail_band FROM '[0-9]+'))::integer) < %s")
@@ -198,8 +231,17 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
         columns += ', round(ST_Distance(l.location, g.location)::numeric) AS distance_m'
         order = ' ORDER BY distance_m, l.listing_id'
 
+    notices = [PRICE_NOTICE]
+
     def action(s):
         extra = {}
+        nonlocal noise_limit
+        if noise_limit is not None and not s.fetch(
+                'SELECT EXISTS (SELECT 1 FROM vienna_stay_assistant.listings WHERE lnight_road_band IS NOT NULL '
+                'OR lnight_rail_band IS NOT NULL) AS loaded')[0]['loaded']:
+            del prices[noise_clause], price_params[noise_clause]
+            noise_limit = None
+            notices[:] = [n for n in notices if n != NOISE_NOTICE] + [NOISE_MISSING_NOTICE]
         if landmark is not None:
             found = s.fetch('SELECT name, latitude, longitude FROM vienna_stay_assistant.landmarks '
                             'WHERE lower(name) = lower(%s)', (landmark,))
@@ -216,7 +258,6 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
         sql = 'SELECT ' + columns + base + ((' AND ' + ' AND '.join(prices)) if prices else '')
         return {**s.page(sql + order, (*params, *price_params), limit, offset), **extra,
                 'missing_price_exclusions': missing_price, 'missing_noise_exclusions': missing_noise}
-    notices = [PRICE_NOTICE]
     if noise_limit is not None:
         notices.append(NOISE_NOTICE)
     return _run(connection, 'search_listings', action, notices)

@@ -221,6 +221,28 @@ class QueryIntegrationTests(unittest.TestCase):
         self.assertEqual(combined['missing_noise_exclusions'], 1)  # listing 4: inside 500 m, no band
         self.assertEqual(queries.search_listings(self.connection)['missing_noise_exclusions'], 0)
 
+    def test_district_accepts_name_any_case_number_ordinal_or_postcode(self):
+        for district in ('Neubau', 'neubau', 7, '7', '7th', '7.', 'seventh', '1070', '7th district', '7. Bezirk'):
+            result = queries.search_listings(self.connection, district=district)
+            self.assertEqual(result['total_matches'], 5, district)
+        self.assertEqual(queries.search_listings(self.connection, district=9)['rows'], [])
+        with self.assertRaises(ValueError):
+            queries.search_listings(self.connection, district=24)
+
+    def test_noise_filter_is_skipped_with_a_notice_when_no_noise_data_is_loaded(self):
+        saved = self.connection.execute('SELECT listing_id, lnight_road_band, lnight_rail_band '
+                                        'FROM vienna_stay_assistant.listings').fetchall()
+        self.connection.execute('UPDATE vienna_stay_assistant.listings SET lnight_road_band = NULL, lnight_rail_band = NULL')
+        try:
+            result = queries.search_listings(self.connection, max_night_noise_db=40)
+        finally:
+            for lid, road, rail in saved:
+                self.connection.execute('UPDATE vienna_stay_assistant.listings SET lnight_road_band = %s, '
+                                        'lnight_rail_band = %s WHERE listing_id = %s', (road, rail, lid))
+        self.assertEqual(result['total_matches'], 5)
+        self.assertIn(queries.NOISE_MISSING_NOTICE, result['notices'])
+        self.assertNotIn(queries.NOISE_NOTICE, result['notices'])
+
     def test_aggregation_is_listing_weighted_and_fully_citable(self):
         result = queries.compare_host_prices(self.connection, 'Neubau')
         yes, no, unknown = result['groups']

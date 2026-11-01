@@ -75,7 +75,8 @@ HYBRID_DESCRIPTION = (
 
 DEFINITIONS = (
     ('search_listings', ListingSearch,
-     'Filter Vienna snapshot listings by exact district/room/amenities, minimum capacity, '
+     'Filter Vienna snapshot listings by district (its name such as "Alsergrund", or its number 1-23 such as 9), '
+     'exact room/amenities, minimum capacity, '
      'room_type must be exactly one of: Entire home/apt, Private room, Shared room, Hotel room; omit it unless asked. '
      'bedrooms is an exact bedroom-count filter. Use it when the user requests a bedroom count. '
      'inclusive base prices (decimal strings), superhost status or IDs. near_landmark (a curated station or '

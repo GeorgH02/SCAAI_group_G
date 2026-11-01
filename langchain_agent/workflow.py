@@ -9,8 +9,16 @@ from urllib.parse import urlparse
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langsmith import tracing_context
+from pydantic import ValidationError
 
 from langchain_agent.tools import build_tools
+
+
+# Written by the application (SQL text, parameters already masked, provenance), not by hosts or guests.
+TRUSTED_EVIDENCE_KEYS = frozenset({'evidence', 'provenance'})
+MAX_MODEL_IDS = 20
+# Plain numbers, ISO dates/timestamps and UUIDs carry no personal data.
+NOT_TEXT = re.compile(r'-?\d+(?:\.\d+)?|\d{4}-\d{2}-\d{2}(?:[T ][\d:.+\-Z]+)?|[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}')
 
 
 class WorkflowError(RuntimeError):
@@ -141,12 +149,25 @@ class EvidenceWorkflow:
             from langchain_core.messages import AIMessage
             messages.append(AIMessage(content='', tool_calls=safe_calls))
             for call in safe_calls:
-                result = self.tools[call['name']].invoke(call['args'], config=config)
+                try:
+                    result = self.tools[call['name']].invoke(call['args'], config=config)
+                except ValueError as error:
+                    # Wrong arguments: tell the model what was wrong (never the values) so it can retry.
+                    # ValidationError comes from the tool schema, plain ValueError from the query's own checks;
+                    # database failures are QueryError (RuntimeError) and still stop the request.
+                    problems = ('; '.join(f"{'.'.join(map(str, e['loc'])) or 'arguments'}: {e['msg']}"
+                                          for e in error.errors()[:5])
+                                if isinstance(error, ValidationError) else str(error)[:200])
+                    calls += 1
+                    messages.append(ToolMessage(content=f'Invalid arguments for {call["name"]}: {problems}. '
+                                                        'Use only the parameters this tool defines.',
+                                                tool_call_id=call['id']))
+                    continue
                 if self.clean_evidence:
                     result = self.clean_evidence(result)
                 # Keep SQL/IDs intact in the application artifact. Only a redacted
                 # copy is eligible for model context, after an indirect-input guard.
-                context = self._masked(json.dumps(result, ensure_ascii=False))
+                context = json.dumps(self._mask_evidence(result), ensure_ascii=False)
                 if self.evidence_guard(context) is not True:
                     return {'status': 'blocked_evidence', 'results': []}
                 results.append(result)
@@ -156,6 +177,27 @@ class EvidenceWorkflow:
                     return {'status': 'context_limit', 'results': results}
                 messages.append(ToolMessage(content=context, tool_call_id=call['id']))
         return {'status': 'budget_exhausted', 'results': results}
+
+    def _mask_evidence(self, value):
+        """Mask each text value of a tool result; numbers, IDs, dates and the application's SQL stay intact.
+
+        Masking the serialized JSON as one string let PII detection turn listing IDs and prices into
+        <PHONE_NUMBER_n> and break the JSON.
+        """
+        if isinstance(value, dict):
+            return {k: v if k in TRUSTED_EVIDENCE_KEYS else self._mask_evidence(v) for k, v in value.items()}
+        if isinstance(value, list):
+            if len(value) > MAX_MODEL_IDS and all(type(v) is int for v in value):
+                # Long ID lists (e.g. every listing in a price group) overflow the model context;
+                # the application result keeps the complete list.
+                return [*value[:MAX_MODEL_IDS], f'... {len(value) - MAX_MODEL_IDS} more IDs omitted']
+            return [self._mask_evidence(v) for v in value]
+        if isinstance(value, str) and value.strip() and not NOT_TEXT.fullmatch(value):
+            masked = self.mask(value)
+            if not isinstance(masked, str):
+                raise ValueError('Masking failed')
+            return masked
+        return value
 
     def _mask_values(self, value):
         if isinstance(value, str):

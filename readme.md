@@ -43,10 +43,9 @@ completed Qdrant review-vector collection. The first request loads local privacy
 and embedding models. Set `DATABASE_URL` to a dedicated SELECT-only PostgreSQL
 login when not using the local development database defaults. `QDRANT_URL`
 defaults to `http://127.0.0.1:6353`; use `QDRANT_API_KEY` if configured. Review
-summaries are AI-generated and should be checked against the displayed review
-evidence: citation IDs are checked, but claim entailment is not. Review-text
-filtering is heuristic, so this is a prototype, not a production safety
-guarantee. Listing searches can filter by exact bedroom count; review searches
+summaries are AI-generated and pass through the output guard (below) before they
+are shown. Review-text filtering is heuristic, so this is a prototype, not a
+production safety guarantee. Listing searches can filter by exact bedroom count; review searches
 recognize month-and-year dates such as “March 2026.” Availability and prices
 describe the **2026-09-17 snapshot**, not live booking data. If a New Year's Eve
 question has no year, choose the intended year in the sidebar; the UI will not
@@ -97,6 +96,24 @@ Llama Guard is optional (Meta Llama 3.2 license, about 1.6 GB) and is switched o
 docker compose exec -T ollama ollama pull llama-guard3:1b
 python try_agent_db.py "Which apartments are within 500 m of Wien Westbahnhof?"
 ```
+
+## Output guard
+
+`guardrails/output_guard.py` checks each generated answer sentence by sentence before it is shown:
+
+1. **Citations:** a sentence must cite `[listing N]` or `[review N]` from the retrieved evidence. The citation
+   is resolved to that evidence (SQL row, price group, availability result or review text). Sentences without
+   a citation may only restate a notice such as "prices are snapshot base prices".
+2. **Faithfulness:** a multilingual NLI model
+   ([`MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7`](https://huggingface.co/MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7),
+   DeBERTa-v3 trained on MNLI/XNLI, about 1 GB, downloads on first use) must find the sentence entailed by
+   its cited evidence, so English answers can be checked against German reviews. Every number in the sentence
+   must also appear in that evidence (rounding allowed). Unsupported sentences are removed; if none remain,
+   the answer is withheld. The entailment threshold is `OUTPUT_NLI_THRESHOLD` (default `0.5`).
+3. **PII leak check:** the remaining text is masked again with Presidio; citations, listing IDs and landmark
+   names are left untouched.
+
+The chat shows the verified citations and the removed sentences with the reason for each.
 
 ## Hybrid review search
 
