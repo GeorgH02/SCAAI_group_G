@@ -1,86 +1,96 @@
 flowchart TD
-    %% Application tables live in database vienna_stay, schema vienna_stay_assistant.
-    %% Target online architecture. Offline SQL/PostGIS schema and ingestion plus dense
-    %% ingestion and five read-only Python query tools are implemented; pg_search/BM25,
-    %% noise enrichment, text-to-SQL and public online flow remain planned.
-    %% langchain_agent/tools.py registers fixed SQL tools; langchain_agent/workflow.py implements
-    %% bounded local tool routing to evidence only, with required injected guards.
-    UI["Web UI<br/>chat streaming · citation drawer · guardrail status"]
-    API["FastAPI backend<br/>async SSE · structured telemetry"]
+    %% Vienna Stay Assistant as built (November 2026). Two tiers: the FastAPI orchestrator runs the
+    %% guards, retrieval and checks; Ollama is a separate inference server on its own port.
 
-    subgraph IN["Input guardrails"]
+    UI["Streamlit chat · app1.py<br/>token streaming · guard status lines<br/>citations, removed sentences, evidence panes"]
+    API["FastAPI orchestrator · api/main.py · :8000<br/>POST /answer · POST /answer/stream (SSE)<br/>/evidence · /health"]
+
+    subgraph IN["Input guard · guardrails/input_guard.py"]
         direction LR
-        INJ["Injection guard<br/>Llama-Guard 3"]
-        TOP["Topic gate<br/>domain classifier"]
-        PII["PII masking<br/>Presidio + spaCy de/en"]
-        INJ --> TOP --> PII
+        CLEAN["Normalize text<br/>hidden characters, full width"]
+        IDR["Identity rules<br/>names, contacts of hosts and guests (en/de)"]
+        INJ["Injection rules<br/>jailbreak, prompt exfiltration (en/de)"]
+        CITY["Other-city check"]
+        TOP["Topic gate<br/>bge-m3 similarity to on/off-topic examples"]
+        LG["Llama Guard 3<br/>optional, LLAMA_GUARD=1"]
+        CLEAN --> IDR --> INJ --> CITY --> TOP --> LG
     end
 
-    REJ["Refusal<br/>no LLM call"]
-    ROUTER["Query router<br/>structured · semantic · geo · multi-hop"]
+    REJ["Refusal message<br/>no model call"]
+    PII["PII masking · Presidio + spaCy<br/>names → &lt;PERSON_n&gt;, landmark and district names kept"]
 
-    subgraph CTX["Context construction (read-only actions)"]
-        SQL["Text-to-SQL<br/>read-only DB role"]
-        HYB["Hybrid search<br/>BM25 + dense, RRF"]
+    subgraph EV["Evidence search · langchain_agent/"]
+        AGENT["Tool-calling loop (LangChain)<br/>model picks tools · max 4 rounds, 8 calls"]
+        TOOLS["Fixed read-only SQL tools<br/>search_listings · check_availability<br/>compare_host_prices · get_host_listings · search_reviews"]
+        EG["Evidence guard<br/>drops rows that contain instructions"]
+        AGENT --> TOOLS --> EG
+        EG -- "masked results" --> AGENT
+    end
+
+    subgraph HY["Hybrid review search · retrieval/hybrid.py"]
+        DENSE["Dense search<br/>bge-m3 query vector"]
+        FTS["Full-text search<br/>Postgres FTS"]
+        RRF["Rank fusion (RRF)"]
         RR["Reranker<br/>bge-reranker-v2-m3"]
-        PG[("PostgreSQL + PostGIS + pg_search<br/>listings · hosts · reviews · calendar<br/>neighbourhoods · noise_zones<br/>BM25 index")]
-        VDB[("Vector DB<br/>bge-m3 chunk embeddings")]
-        SQL --> PG
-        SQL -- "listing_ids (multi-hop)" --> HYB
-        HYB -- "BM25" --> PG
-        HYB -- "dense" --> VDB
-        HYB --> RR
+        DENSE --> RRF
+        FTS --> RRF
+        RRF --> RR
     end
 
-    ASM["Context assembly<br/>SQL rows + review chunks with primary keys"]
-    LLM["Local Ollama server<br/>Qwen 2.5 7B · qwen2.5:7b<br/>OpenAI-compatible API · port 21434"]
+    PG[("PostgreSQL 17 + PostGIS · :5433<br/>listings · hosts · reviews · calendar<br/>neighbourhoods · landmarks · noise_zones")]
+    VDB[("Qdrant · :6353<br/>one chunk per review and per listing description<br/>bge-m3, 1024 dimensions")]
+    LLM["Ollama inference server · :21434<br/>Qwen2.5-7B-Instruct · INT8 / INT4 / FP16 (GGUF)<br/>OpenAI-compatible API"]
 
-    subgraph OUTG["Output guardrails"]
+    GEN["Answer generation<br/>JSON schema enforced while decoding<br/>answer text streamed token by token"]
+
+    subgraph OUTG["Output guard · guardrails/output_guard.py"]
         direction LR
-        FAITH["Faithfulness<br/>NLI per sentence, ungrounded removed"]
-        CITE["Citation mapper<br/>claim → review_id / listing_id / SQL key"]
-        LEAK["PII leak check<br/>re-mask output"]
-        FAITH --> CITE --> LEAK
+        NUM["Number check<br/>every number must be in the cited evidence"]
+        NLI["NLI per sentence<br/>mDeBERTa-v3 XNLI, multilingual"]
+        CITE["Citation resolver<br/>listing / review IDs, adds missing ones"]
+        RED["PII redaction<br/>of the final answer"]
+        NUM --> NLI --> CITE --> RED
     end
 
-    OUT["Streamed answer + citations<br/>SSE to Web UI"]
+    OUT["Checked answer + citations<br/>unsupported sentences removed<br/>withheld if nothing is verified"]
+    TEL[("Telemetry · derived/telemetry.jsonl<br/>stage timings, TTFT, tokens/s<br/>no question text")]
 
     subgraph ING["Offline ingestion"]
-        AIR[("Inside Airbnb Vienna · 2026-09-17 snapshot<br/>listings · reviews · calendar · neighbourhoods")]
-        NOISE[("Strategic noise map<br/>Lden / Lnight GeoPackage")]
-        PREP["Preprocessing<br/>parse · clean · PII mask · chunk"]
-        EMB["Embedding<br/>bge-m3"]
-        SPATIAL["Spatial join<br/>ST_DWithin 150 m buffer"]
-        AIR --> PREP --> EMB
-        NOISE --> SPATIAL
+        AIR[("Inside Airbnb Vienna<br/>snapshot 2026-09-17")]
+        NOISE[("Strategic noise map 2022<br/>Lnight road + rail, OGC API")]
+        SQLLOAD["data_setup/load_sql.py<br/>parse, clean, normalize hosts"]
+        VECLOAD["data_setup/load_vectors.py<br/>clean, mask PII, chunk, embed"]
+        NOISELOAD["ingest/noise.py<br/>zones + worst band within 150 m"]
+        AIR --> SQLLOAD
+        AIR --> VECLOAD
+        NOISE --> NOISELOAD
     end
-
-    TEL[("Telemetry<br/>TTFT · latency · tokens/s<br/>retrieval time · guard events")]
 
     UI --> API --> IN
     IN -- "blocked" --> REJ
-    IN -- "passed" --> ROUTER
-    ROUTER --> SQL
-    ROUTER --> HYB
-    SQL --> ASM
-    RR --> ASM
-    ASM --> LLM --> OUTG --> OUT
+    IN -- "passed" --> PII --> AGENT
+    TOOLS --> PG
+    AGENT -. "tool calls" .-> LLM
+    EG -- "listing IDs in scope" --> HY
+    DENSE --> VDB
+    FTS --> PG
+    RR -- "review evidence" --> GEN
+    EG -- "SQL evidence" --> GEN
+    GEN -. "streamed generation" .-> LLM
+    GEN --> OUTG --> OUT --> API
 
-    PREP --> PG
-    EMB --> VDB
-    SPATIAL --> PG
+    SQLLOAD --> PG
+    NOISELOAD --> PG
+    VECLOAD --> VDB
 
     API -.-> TEL
-    IN -.-> TEL
-    LLM -.-> TEL
-    OUTG -.-> TEL
 
     classDef guard fill:#E1F5EE,stroke:#0F6E56,color:#085041
     classDef core fill:#EEEDFE,stroke:#534AB7,color:#3C3489
     classDef infra fill:#F1EFE8,stroke:#5F5E5A,color:#2C2C2A
     classDef reject fill:#FCEBEB,stroke:#A32D2D,color:#791F1F
 
-    class INJ,TOP,PII,FAITH,CITE,LEAK guard
-    class ROUTER,SQL,HYB,RR,ASM,LLM core
-    class UI,API,OUT,PG,VDB,AIR,NOISE,PREP,EMB,SPATIAL,TEL infra
+    class CLEAN,IDR,INJ,CITY,TOP,LG,PII,EG,NUM,NLI,CITE,RED guard
+    class AGENT,TOOLS,DENSE,FTS,RRF,RR,GEN,LLM core
+    class UI,API,OUT,PG,VDB,AIR,NOISE,SQLLOAD,VECLOAD,NOISELOAD,TEL infra
     class REJ reject

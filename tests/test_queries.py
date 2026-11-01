@@ -23,6 +23,8 @@ class QueryValidationTests(unittest.TestCase):
             lambda: queries.search_listings(self.connection, amenities='wifi'),
             lambda: queries.search_listings(self.connection, superhost='true'),
             lambda: queries.search_listings(self.connection, accommodates=0),
+            lambda: queries.search_listings(self.connection, bedrooms=-1),
+            lambda: queries.search_listings(self.connection, bedrooms=True),
             lambda: queries.search_listings(self.connection, listing_ids=[]),
             lambda: queries.search_listings(self.connection, near_landmark='  '),
             lambda: queries.search_listings(self.connection, near_landmark='Albertina', radius_m=0),
@@ -116,12 +118,16 @@ class QueryIntegrationTests(unittest.TestCase):
                 (host_id, host_is_superhost, source_listing_id, last_scraped, snapshot_date, load_id)
                 VALUES (%s,%s,1,'2026-09-19','2026-09-17','00000000-0000-0000-0000-000000000001')''',
                 (hid, superhost))
-        for lid, hid, price in [(1, 10, 100), (2, 10, 200), (3, 11, 600), (4, 20, None), (5, 30, 50)]:
+        for lid, hid, price, bedrooms in [
+            (1, 10, 100, 1), (2, 10, 200, 0), (3, 11, 600, 2),
+            (4, 20, None, 1), (5, 30, 50, None),
+        ]:
             cls.connection.execute('''INSERT INTO vienna_stay_assistant.listings
-                (listing_id, host_id, neighbourhood, room_type, accommodates, price, amenities,
+                (listing_id, host_id, neighbourhood, room_type, accommodates, bedrooms, price, amenities,
                  last_scraped, snapshot_date, load_id)
-                VALUES (%s,%s,'Neubau','Entire home/apt',4,%s,ARRAY['Wifi','Kitchen'],
-                 '2026-09-19','2026-09-17','00000000-0000-0000-0000-000000000001')''', (lid, hid, price))
+                VALUES (%s,%s,'Neubau','Entire home/apt',4,%s,%s,ARRAY['Wifi','Kitchen'],
+                 '2026-09-19','2026-09-17','00000000-0000-0000-0000-000000000001')''',
+                (lid, hid, bedrooms, price))
         # Distances from the seeded landmark 'Wien Westbahnhof': ~100 m, ~400 m, ~700 m, ~300 m, unknown.
         for lid, lat, lon, road, rail in [(1, 48.1974, 16.3363, '50-54', None), (2, 48.2001, 16.3363, '50-54', '60-64'),
                                           (3, 48.2028, 16.3363, '70-74', None), (4, 48.1965, 16.3403, None, None)]:
@@ -168,6 +174,12 @@ class QueryIntegrationTests(unittest.TestCase):
         self.assertEqual([r['listing_id'] for r in targeted['rows']], [1, 3])
         json.dumps(result)
 
+    def test_bedroom_count_is_an_exact_filter(self):
+        result = queries.search_listings(self.connection, bedrooms=1)
+        self.assertEqual([row['listing_id'] for row in result['rows']], [1, 4])
+        self.assertEqual(queries.search_listings(self.connection, bedrooms=0)['rows'][0]['listing_id'], 2)
+        self.assertEqual(queries.search_listings(self.connection, bedrooms=3)['rows'], [])
+
     def test_landmark_distance_filter_sorts_nearest_first(self):
         result = queries.search_listings(self.connection, near_landmark='Wien Westbahnhof', radius_m=500)
         self.assertEqual([r['listing_id'] for r in result['rows']], [1, 4, 2])
@@ -191,23 +203,68 @@ class QueryIntegrationTests(unittest.TestCase):
             self.assertEqual(len(result['known_landmarks']), 20)
         self.assertEqual(queries.search_listings(self.connection)['total_matches'], 5)
 
-    def test_night_noise_filter_uses_worst_band_and_reports_exclusions(self):
-        # Bands: 1 -> road 50-54; 2 -> road 50-54 but rail 60-64; 3 -> road 70-74; 4 and 5 have none.
+    def test_night_noise_filter_uses_worst_band_and_counts_unmapped_as_quiet(self):
+        # Bands: 1 -> road 50-54; 2 -> road 50-54 but rail 60-64; 3 -> road 70-74; 4 and 5 have none (below 45 dB).
         quiet = queries.search_listings(self.connection, max_night_noise_db=55)
-        self.assertEqual([r['listing_id'] for r in quiet['rows']], [1])
-        self.assertEqual(quiet['missing_noise_exclusions'], 2)
+        self.assertEqual([r['listing_id'] for r in quiet['rows']], [1, 4, 5])
+        self.assertEqual(quiet['quieter_than_mapped'], 2)
         self.assertIn(queries.NOISE_NOTICE, quiet['notices'])
         self.assertEqual(quiet['rows'][0]['lnight_road_band'], '50-54')
         edge = queries.search_listings(self.connection, max_night_noise_db=60)  # '60-64' starts AT 60, not below it
-        self.assertEqual([r['listing_id'] for r in edge['rows']], [1])
+        self.assertEqual([r['listing_id'] for r in edge['rows']], [1, 4, 5])
         mid = queries.search_listings(self.connection, max_night_noise_db=65)  # rail band of listing 2 now passes
-        self.assertEqual([r['listing_id'] for r in mid['rows']], [1, 2])
-        self.assertEqual(queries.search_listings(self.connection, max_night_noise_db=30)['rows'], [])
+        self.assertEqual([r['listing_id'] for r in mid['rows']], [1, 2, 4, 5])
+        silent = queries.search_listings(self.connection, max_night_noise_db=40)  # only listings below the map
+        self.assertEqual([r['listing_id'] for r in silent['rows']], [4, 5])
         combined = queries.search_listings(self.connection, near_landmark='Wien Westbahnhof', radius_m=500,
                                            max_night_noise_db=55)
-        self.assertEqual([r['listing_id'] for r in combined['rows']], [1])
-        self.assertEqual(combined['missing_noise_exclusions'], 1)  # listing 4: inside 500 m, no band
-        self.assertEqual(queries.search_listings(self.connection)['missing_noise_exclusions'], 0)
+        self.assertEqual([r['listing_id'] for r in combined['rows']], [1, 4])  # nearest first
+        self.assertEqual(combined['quieter_than_mapped'], 1)  # listing 4: inside 500 m, no band
+        self.assertEqual(queries.search_listings(self.connection)['quieter_than_mapped'], 0)
+
+    def test_district_accepts_name_any_case_number_ordinal_or_postcode(self):
+        for district in ('Neubau', 'neubau', 7, '7', '7th', '7.', 'seventh', '1070', '7th district', '7. Bezirk'):
+            result = queries.search_listings(self.connection, district=district)
+            self.assertEqual(result['total_matches'], 5, district)
+        self.assertEqual(queries.search_listings(self.connection, district=9)['rows'], [])
+        with self.assertRaises(ValueError):
+            queries.search_listings(self.connection, district=24)
+
+    def test_noise_filter_is_skipped_with_a_notice_when_no_noise_data_is_loaded(self):
+        saved = self.connection.execute('SELECT listing_id, lnight_road_band, lnight_rail_band '
+                                        'FROM vienna_stay_assistant.listings').fetchall()
+        self.connection.execute('UPDATE vienna_stay_assistant.listings SET lnight_road_band = NULL, lnight_rail_band = NULL')
+        try:
+            result = queries.search_listings(self.connection, max_night_noise_db=40)
+        finally:
+            for lid, road, rail in saved:
+                self.connection.execute('UPDATE vienna_stay_assistant.listings SET lnight_road_band = %s, '
+                                        'lnight_rail_band = %s WHERE listing_id = %s', (road, rail, lid))
+        self.assertEqual(result['total_matches'], 5)
+        self.assertIn(queries.NOISE_MISSING_NOTICE, result['notices'])
+        self.assertNotIn(queries.NOISE_NOTICE, result['notices'])
+
+    def test_amenity_words_match_case_insensitively_inside_names(self):
+        self.assertEqual(queries.search_listings(self.connection, amenities=['wifi', 'KITCH'])['total_matches'], 5)
+        self.assertEqual(queries.search_listings(self.connection, amenities=['wifi', 'pool'])['total_matches'], 0)
+        self.assertEqual(queries.search_listings(self.connection, amenities=['%'])['total_matches'], 0)
+
+    def test_too_strict_noise_limit_returns_the_quietest_listings_with_a_notice(self):
+        # Every listing in district 7 is mapped, so nothing is below 45 dB; the quietest come first instead.
+        self.connection.execute("UPDATE vienna_stay_assistant.listings SET lnight_road_band = '55-59' "
+                                "WHERE lnight_road_band IS NULL AND lnight_rail_band IS NULL")
+        try:
+            result = queries.search_listings(self.connection, max_night_noise_db=45)
+            district = queries.search_listings(self.connection, district=7, max_night_noise_db=40)
+        finally:
+            self.connection.execute("UPDATE vienna_stay_assistant.listings SET lnight_road_band = NULL "
+                                    "WHERE listing_id IN (4, 5)")
+        self.assertTrue(result['noise_filter_relaxed'])
+        self.assertEqual([r['listing_id'] for r in result['rows']][:2], [1, 4])
+        notice = next(n for n in result['notices'] if 'below 45 dB' in n)
+        self.assertIn('the quietest matching listings have night noise of 50-54 dB', notice)
+        self.assertTrue(any('in Neubau (district 7)' in n for n in district['notices']), district['notices'])
+        self.assertFalse(queries.search_listings(self.connection, max_night_noise_db=55)['noise_filter_relaxed'])
 
     def test_aggregation_is_listing_weighted_and_fully_citable(self):
         result = queries.compare_host_prices(self.connection, 'Neubau')

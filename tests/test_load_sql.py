@@ -7,7 +7,7 @@ from collections import Counter
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 from data_setup import load_sql as loader
 
@@ -94,6 +94,17 @@ class SqlSourceTests(SqlFixture):
         self.assertEqual(stats['listings_missing_price'], 1)
         hosts = loader.host_sources(listings, stats)
         self.assertEqual(list(loader.host_records(hosts, self.masker))[0][1], '<PERSON_0>')
+
+    def test_amenities_mask_only_the_host_name_not_ordinary_words(self):
+        self.assertEqual(loader.amenity_list('["Patio or balcony", "Wifi", "Secret\'s espresso machine"]', ['Secret']),
+                         ['Patio or balcony', 'Wifi', "<PERSON_0>'s espresso machine"])
+        self.assertIsNone(loader.amenity_list('', ['Secret']))
+        with self.assertRaises(ValueError):
+            loader.amenity_list('{"a": 1}', ['Secret'])
+        listings, _ = loader.listing_sources(self.root, None, loader.Counter())
+        record = next(loader.listing_records(listings, self.masker, loader.Counter()))
+        self.assertIn(['Wi-Fi'], record)
+        self.assertNotIn(call('Wi-Fi', ['Secret']), self.masker.mask.call_args_list)
 
     def test_review_contract_and_language_after_masking(self):
         detector = Mock(return_value='en')

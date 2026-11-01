@@ -9,10 +9,19 @@ Run from the project root with the Docker services up (`docker compose up -d pos
 2. `python -m data_setup.load_sql [--replace]` - loads neighbourhoods, hosts, listings, reviews and
    calendar in one transaction (applies `docker/postgres/init/20-schema.sql` first). Masks PII with
    Presidio + spaCy (de/en), so the first run downloads/loads models. Use `--limit 50` for a sample.
-3. `python -m ingest.noise --gpkg <path> --indicator road --layer <layer> --band-column <column>`, then the same
-   with `--indicator rail`. Loads `noise_zones` and writes the worst band within 150 m to
-   `listings.lnight_road_band` / `lnight_rail_band`. **Rerun after every `--replace` of step 2.**
-   The GeoPackage path, layer and band column are not confirmed yet.
+3. Night noise (Lnight) from the Austrian 2022 strategic noise map (Umweltbundesamt, CC BY 4.0), road and rail:
+   ```bash
+   python -m ingest.noise --ogc-collection laerm_2022_strasse_lnight --indicator road
+   python -m ingest.noise --ogc-collection laerm_2022_schiene_lnight --indicator rail
+   ```
+   The zones inside Vienna (about 80,000 road and 48,000 rail polygons) are downloaded from the
+   [OGC API](https://gis.lfrz.gv.at/api/geodata/i000804/ogc/features/v1/collections) and cached in
+   `derived/noise/`; `--refresh` downloads again. Both layers include Vienna's city streets and railways,
+   unlike the motorway-only GeoPackage. Band labels such as `Lnight6064` and `LnightGreaterThan70` are stored
+   as `60-64` and `>=70`. The worst band within 150 m is written to `listings.lnight_road_band` /
+   `lnight_rail_band`. The map starts at 45 dB, so a listing without a band is quieter than 45 dB at night
+   (or outside the mapped sources). A GeoPackage still works with `--gpkg <path> --layer <layer>
+   --band-column <column>`. **Rerun after every `--replace` of step 2.**
 
 `noise.py` logs row counts before and after each step. `load_sql.py` reports final counts in
 `derived/sql/<load_id>.json` and the `ingestion_runs` table. Both can be rerun safely.
@@ -42,4 +51,4 @@ active listings; "active" is defined as `number_of_reviews_ltm > 0` (8,394 listi
 ## Tests
 
 `python -m unittest discover -s tests -v`. Set `VSA_TEST_DATABASE_URL` to an isolated `vsa_test_*` PostGIS
-database to include the SQL integration test. The noise spatial join has no automated database test yet.
+database to include the SQL integration test. Set `VSA_TEST_DATABASE_URL` the same way to include the noise spatial-join test.

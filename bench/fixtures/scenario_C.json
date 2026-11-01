@@ -1,0 +1,488 @@
+{
+ "question": "Summarize guest feedback on listing 48604277 over the last year. Do the host's other listings share the same complaints?",
+ "sql_evidence": [
+  {
+   "tool": "search_reviews",
+   "notices": [
+    "Keyword search only; no translation, semantic retrieval, BM25, or reranking. Stored reviews are masked, but masking does not guarantee zero PII leakage."
+   ],
+   "rows": [],
+   "total_matches": 0,
+   "has_more": false
+  },
+  {
+   "tool": "search_listings",
+   "notices": [
+    "Prices are snapshot base prices, not date-specific quotes; no currency conversion is performed."
+   ],
+   "rows": [
+    {
+     "listing_id": 48604277,
+     "host_id": 371892825,
+     "neighbourhood": "Rudolfsheim-Fünfhaus",
+     "room_type": "Entire home/apt",
+     "accommodates": 1,
+     "bedrooms": "0",
+     "price": "99.50",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": ">=70",
+     "lnight_rail_band": ">=70"
+    }
+   ],
+   "total_matches": 1,
+   "has_more": false
+  },
+  {
+   "tool": "get_host_listings",
+   "notices": [
+    "Prices are snapshot base prices, not date-specific quotes; no currency conversion is performed."
+   ],
+   "rows": [
+    {
+     "listing_id": 48604277,
+     "host_id": 371892825,
+     "neighbourhood": "Rudolfsheim-Fünfhaus",
+     "room_type": "Entire home/apt",
+     "accommodates": 1,
+     "bedrooms": "0",
+     "price": "99.50",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17"
+    },
+    {
+     "listing_id": 48604725,
+     "host_id": 371892825,
+     "neighbourhood": "Rudolfsheim-Fünfhaus",
+     "room_type": "Entire home/apt",
+     "accommodates": 2,
+     "bedrooms": "0",
+     "price": "119.50",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17"
+    },
+    {
+     "listing_id": 48604901,
+     "host_id": 371892825,
+     "neighbourhood": "Rudolfsheim-Fünfhaus",
+     "room_type": "Entire home/apt",
+     "accommodates": 2,
+     "bedrooms": "0",
+     "price": "130.50",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17"
+    },
+    {
+     "listing_id": 48605909,
+     "host_id": 371892825,
+     "neighbourhood": "Rudolfsheim-Fünfhaus",
+     "room_type": "Entire home/apt",
+     "accommodates": 2,
+     "bedrooms": "0",
+     "price": "181.00",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17"
+    },
+    {
+     "listing_id": 48817801,
+     "host_id": 371892825,
+     "neighbourhood": "Rudolfsheim-Fünfhaus",
+     "room_type": "Entire home/apt",
+     "accommodates": 2,
+     "bedrooms": "1",
+     "price": "94.50",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17"
+    }
+   ],
+   "total_matches": 5,
+   "has_more": false
+  }
+ ],
+ "review_evidence": [
+  {
+   "scope": "Requested listing",
+   "review_id": 1694909271654166014,
+   "listing_id": 48604277,
+   "review_date": "2026-05-27",
+   "language": "en",
+   "text": "As a solo traveler, I found the apartment itself to be perfectly adequate for my stay. It's not particularly large, but it was clean, functional, and suited my needs well. I also appreciated the fully electronic check-in process, which made arrival and access to the building very convenient. My main concern was the surrounding area, particularly in the evenings. On multiple nights, there were individuals congregating across the street engaging in behavior that made me uncomfortable and, at times, caused me to feel uneasy walking back to the property alone after dark. As a result, I often found myself wanting to get inside quickly. To be fair, this is likely outside the host's control, and I had no issues with the apartment itself. However, the location and how safe I felt returning at night would make me think twice about staying here again.",
+   "score": 0.033572
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1699267999104192096,
+   "listing_id": 48604277,
+   "review_date": "2026-06-02",
+   "language": "en",
+   "text": "everything went okay except for two things. my check-in was supposed to be at 15:00 but i had to wait over half an hour because of cleaning. then 4 hours into my stay i got an email, that there was an issue with hot water but they’ve already sent someone to check it out. it was a sunday so i didn’t expect it to be solved that day, but the fact that i was there for 3 day and out of that i had hot water for like 5 hours is unacceptable to me, as it was included in the amenities.",
+   "score": 0.009461
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1592717208611645574,
+   "listing_id": 48604277,
+   "review_date": "2026-01-06",
+   "language": "en",
+   "text": "The <PERSON_0> experience was entirely as referenced which was in itself refreshing. I appreciated the lockers provided to store my luggage prior to the time at which you could check in. <PERSON_1> did in fact offer an earlier time when the room was ready but I was already out for the day at that point. Entrance into and around the room (e.g., the lifts) was very clearly stated in the instructions. Inside the room matched the photos exactly and had everything you could possibly desire for a comfortable stay. Other reviews had said it was <PERSON_2> but I couldn't hear anything from the street and the gentle hum from the shower's extractor fan was a very 'white' noise that I actually found very peaceful as pertains to sleep. The wifi reception was excellent and all instructions in and around the room - including the check out facility - were clarity itself. I was entirely happy with my stay and I plan on staying again should I be so lucky as to be able to get another reservation",
+   "score": 0.008281
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1631911584718811706,
+   "listing_id": 48604277,
+   "review_date": "2026-03-01",
+   "language": "en",
+   "text": "The hotel has a great location, close to <PERSON_1> — a very convenient transport hub. There are food courts and shops at the station. There’s also an IKEA nearby :) The room was fine, overall everything was clean. The shower has a cool heated mirror with a Bluetooth speaker. However, it seemed to me that in other properties of this chain where I stayed (in Frankfurt and Berlin), everything was a bit newer and in slightly better condition. I expected the room to be a bit larger, but it matches the description. Unfortunately, my room was facing directly onto the road, and it was absolutely impossible to sleep with the window open (even on slight ventilation mode) — it was very noisy. The hotel provided earplugs, but they didn’t help me at all. I had to close the window and turn on the air conditioning — which always carries a risk of catching a cold, and there’s the lack of fresh air. So it’s better to book a room facing the inner courtyard.",
+   "score": 0.008199
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1726091695055966247,
+   "listing_id": 48604277,
+   "review_date": "2026-07-09",
+   "language": "en",
+   "text": "I've booked Numa Wood before and would do so again. <PERSON_1> 5 stars, my room had two minor issues that the Numa folks--who are very responsive--promised to address. Rooms are small but so well-designed! Thailanna restaurant downstairs is high quality. The laundry app is easy to use, extra towels and paper are always available, and the windows are soundproof. Steps from <PERSON_2> which also has an ecellent mall. Paradise for solo travelers.",
+   "score": 0.005468
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1684817492733733191,
+   "listing_id": 48604277,
+   "review_date": "2026-05-13",
+   "language": "en",
+   "text": "I had a wonderful stay. The apartment is very comfortable and spacious, and the location is perfect for accessing public transportation. My only tiny critique is the lack of a guest umbrella in the room, which is a standard amenity at most other places I’ve stayed. Still a fantastic place overall!",
+   "score": 0.003968
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1615238889058397965,
+   "listing_id": 48604277,
+   "review_date": "2026-02-06",
+   "language": "en",
+   "text": "The only downside of the apartment is noise: The AC in the bathroom also in the living room can be loud and you can hear the cars from the mariahilfergurtel pretty clearly. But the price is unbeatable and you have everything you need (amazing bed, microwave, desk and fast wifi) for a good stay. Especially the bed was so good, i almost didnt want to stand up in the morning. Also the host responded to messages within a few hours, which is very fast.",
+   "score": 0.003398
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1726703620328721912,
+   "listing_id": 48604277,
+   "review_date": "2026-07-10",
+   "language": "en",
+   "text": "Objectively, the amenities good. However let me expand why I would discourage anyone to stay here. It’s a no-person hotel. Meaning that if you need help with ANYTHING you need to talk through an app/chat. A human is the biggest thing you need when in a different country and you’re not completely up to speed about everything, or worse: you’re not good with tech/apps/chat. Honestly I think it’s too expensive for what you get. They ‘saved away’ the most important thing: a person in real life to help you. <PERSON_1> anyone to choose Numa stays. Unfortunately. I would change my mind if it was cheaper. But with around 600-1200DKK per night it’s approx 3-6x what a hostel bed costs. Even comparable to hotel prices (where you actually do get a human being in the house).",
+   "score": 0.002467
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1673145419614151337,
+   "listing_id": 48604277,
+   "review_date": "2026-04-27",
+   "language": "en",
+   "text": "As someone who is usually on the pickier side when it comes to cleanliness, the space was very clean and modern. The toilet space did have a strange smell at first but it didn’t last and I loved that I didn’t have to carry a key or card around since the room was accessible via a code. Honestly one of the best places I’ve stayed at while traveling, hotels included. Side note: the shampoo and conditioner provided were amazing after a week of airbnbs that lacked good hair products (on a relative scale to other airbnbs of course)",
+   "score": 0.002102
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1736062873715090749,
+   "listing_id": 48604277,
+   "review_date": "2026-07-23",
+   "language": "en",
+   "text": "Another comfortable stay at Numa apartments. I love the concept. Easy entry by use of a code that you receive. No apps required. Free coffee (and milk for the coffee) and tea during the stay. Aircon in the room. Nice bed and shower. Shampoo, conditioner, and hand cream on big dispensers. And the best part is the free entrance to the <PERSON_1> place gym and spa. Please do not forget to take advantage of that offer. It is very luxurious. The best aparthotel concept I have ever tried.",
+   "score": 0.001185
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1609422320985536391,
+   "listing_id": 48604277,
+   "review_date": "2026-01-29",
+   "language": "en",
+   "text": "Loved my stay! It was 3min away from the shopping street and another 30min (on foot) from downtown- super conveniently located, squeaky clean, fluffiest mattress and duvet, warm (I visited at winter!) - highly recommend! Also, after checkout they have a special room to store your luggage for free while you take a last stroll in the area! I d definitely go back!",
+   "score": 0.001129
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1601411463646292101,
+   "listing_id": 48604277,
+   "review_date": "2026-01-18",
+   "language": "en",
+   "text": "Great place to stay. Cutlery and microwave can do wonders for you. They have added several sizes of dishes and a cutting board as well. The bed could be better though, as well as the pillows, too soft/<PERSON_1>",
+   "score": 0.001062
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1586198101577890896,
+   "listing_id": 48604277,
+   "review_date": "2025-12-28",
+   "language": "en",
+   "text": "Great location, responsive host, and worth the price.",
+   "score": 0.000963
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1636943969570640222,
+   "listing_id": 48604277,
+   "review_date": "2026-03-08",
+   "language": "en",
+   "text": "Despite the very great communication with the host, the fact that you are not specifically say that the toilet is located in another space from sink and shower is not fair. I must say that I don't know if I would have reserved the place If I would knew.",
+   "score": 0.000878
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1642078710052996972,
+   "listing_id": 48604277,
+   "review_date": "2026-03-15",
+   "language": "en",
+   "text": "The room was very comfy and clean and the hotel was easy to access as it was close to the subway station. You could easily walk to other touristic areas. They were very communicative and made the process very easy. Recommend!",
+   "score": 0.000686
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1743317781754697655,
+   "listing_id": 48604277,
+   "review_date": "2026-08-02",
+   "language": "en",
+   "text": "Very nice place with very helpful host. easy to get around only about 13 minute or less drive from main attractions.",
+   "score": 0.000626
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1701381558618544861,
+   "listing_id": 48604277,
+   "review_date": "2026-06-05",
+   "language": "en",
+   "text": "This is my second time staying in a Numa, it is very simple to check in. I helped another family use their pin code and the guest helpline was very friendly and helpful.",
+   "score": 0.000442
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1522438726221966946,
+   "listing_id": 48604277,
+   "review_date": "2025-10-01",
+   "language": "en",
+   "text": "I chose to stay here again after visiting Vienna last year. The apartment is small and functional, accurately described. Easy to get inside, and perfect location across from the <PERSON_1>, and <PERSON_2> (if you feel like a nice walk, about 20 mins you’ll be in the centre near Stephansplatz.)",
+   "score": 0.000419
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1767285633611742453,
+   "listing_id": 48604277,
+   "review_date": "2026-09-04",
+   "language": "pt",
+   "text": "Gostei bastante do hotel e até já recomendei a amigos que viajam para Viena, <PERSON_1> minha estadia.",
+   "score": 0.000156
+  },
+  {
+   "scope": "Requested listing",
+   "review_id": 1667325192356553117,
+   "listing_id": 48604277,
+   "review_date": "2026-04-19",
+   "language": "en",
+   "text": "The room was a little small but other than that everything was fine",
+   "score": 5.9e-05
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1728256469435137837,
+   "listing_id": 48604725,
+   "review_date": "2026-07-12",
+   "language": "en",
+   "text": "We had a very pleasant stay. The apartment was clean, well-maintained, and very easy to access with a smooth check-in process. Its location was excellent, with restaurants, shops, and public transport all within easy walking distance. It was the perfect place for a short stay, and we would definitely recommend it to anyone looking for a comfortable and conveniently located accommodation.",
+   "score": 0.870226
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1621023834483019267,
+   "listing_id": 48604725,
+   "review_date": "2026-02-14",
+   "language": "en",
+   "text": "clean, simple apartment. Very good location",
+   "score": 0.743488
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1704907843634932433,
+   "listing_id": 48604725,
+   "review_date": "2026-06-10",
+   "language": "en",
+   "text": "The hotel room itself was great very clean and well equipped. The main issue I struggled with was communication with the hotel staff. They inform you in advance that the team works remotely, and I took that into consideration. <PERSON_1>, you can’t really depend on their help if you need something resolved quickly.",
+   "score": 0.716934
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1709369492873467962,
+   "listing_id": 48604725,
+   "review_date": "2026-06-16",
+   "language": "en",
+   "text": "The place was clean and lovely, perfectly located as well, and definitely I’d recommend this place.",
+   "score": 0.570597
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1642033129207501976,
+   "listing_id": 48604725,
+   "review_date": "2026-03-15",
+   "language": "en",
+   "text": "Everything was as expected,clean,and cozy. Location was great and easy to get to from the airport( the vab1 bus takes you to the station which is 3 minutes away), and from there u can get to basically anywhere in the city with the U lines or the tram. The room can get a little stuffy, but u can just open the window. Enjoyed my stay :)",
+   "score": 0.309607
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1536891866645401131,
+   "listing_id": 48604901,
+   "review_date": "2025-10-21",
+   "language": "en",
+   "text": "The place was clean, stylish, and very well located. We loved our stay and would highly recommend it!",
+   "score": 0.282386
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1613778835855694315,
+   "listing_id": 48604901,
+   "review_date": "2026-02-04",
+   "language": "en",
+   "text": "Beautiful apartment with a great atmosphere. The host was exceptionally helpful, responsive, and kindly accommodated an early check-in, which made the stay even more convenient and enjoyable.",
+   "score": 0.128192
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1679018050213871952,
+   "listing_id": 48604725,
+   "review_date": "2026-05-05",
+   "language": "en",
+   "text": "This place was in a great location just across from the train station and subways. <PERSON_1>, the bar next door had some questionable activity depending on the day. However, we never felt unsafe and there was plenty of police watching the area. The stay itself was lovely with easy check in, great restaurant and price. Only complaint was on arrival our toilet room smelt awful we couldn't get rid of the smell even by opening the windows, this diminished during our stay but was not pleasant to be greeted by. The beds also only have a top sheet not a fitted sheet so this would come off and expose the mattress which is not the cleanliest.",
+   "score": 0.06707
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1757153084331266812,
+   "listing_id": 48604725,
+   "review_date": "2026-08-21",
+   "language": "en",
+   "text": "The hotel was very clean, and the building was quiet and peaceful. The soundproofing was excellent – I could hardly hear any noise from the other rooms. The location was also very convenient, close to shops, restaurants, train stations, and bus stops. There was even a Thai restaurant inside the building. The air conditioning worked really well, which made the stay very comfortable. I also have to say that, in my opinion, the hotel looked even better and more stylish in person than in the photos. Overall, I was very satisfied with my stay and would definitely recommend this hotel.",
+   "score": 0.040092
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1602865531873118863,
+   "listing_id": 48604725,
+   "review_date": "2026-01-20",
+   "language": "en",
+   "text": "I really enjoyed my stay at Numa Vienna Woods. The room was very clean, modern, and well equipped with all the amenities I needed. The location is excellent, very central and perfect for reaching all major sights quickly. I had a quiet room, which was exactly what I needed after an intensive solo trip for my birthday. I truly appreciated the peace and comfort during my stay and would definitely recommend this place.",
+   "score": 0.039439
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1710909663853359283,
+   "listing_id": 48817801,
+   "review_date": "2026-06-18",
+   "language": "en",
+   "text": "Very good stay at <PERSON_0>. The room was excellent, with a large toilet, sufficient kitchenette and an outdoor space for lounging. The location was good as well, located right next to a large train station and being in walking distance of quite a few amenties and a shopping street.",
+   "score": 0.038928
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1710099159098587767,
+   "listing_id": 48604725,
+   "review_date": "2026-06-17",
+   "language": "en",
+   "text": "I love Vienna and visit the city quite often. This was already my second stay at these apartments, and once again I was very satisfied with my experience. The location is excellent. The metro station is only about a 3-minute walk away, and the city center can be reached in around 10 minutes by metro, which makes it very convenient for exploring Vienna. The apartment was clean and comfortable. The bed, pillows, bedding, towels, and bathroom were all spotless. There was always hot water, and the room had everything I needed for a pleasant stay. I also appreciated the coffee machine, kettle, tea selection (including both black and green tea), as well as regular and plant-based milk provided in the room. These thoughtful details made the stay even more comfortable. Whenever I had a question or needed assistance, the support team responded quickly and was very helpful. I am very happy with my stay and would gladly choose these apartments again on my next visit to Vienna",
+   "score": 0.035977
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1657288972685382697,
+   "listing_id": 48604725,
+   "review_date": "2026-04-05",
+   "language": "en",
+   "text": "Very nice place. Clean and hotel-like. Usage of pinpad to enter is very convenient. The shower fan is a bit loud and seems to run forever. But other than that room was basically perfect. Very close to a large metro station and one of the main shopping streets in Vienna. There’s always people around so it doesn’t feel unsafe at all.",
+   "score": 0.032851
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1592062376507409100,
+   "listing_id": 48604725,
+   "review_date": "2026-01-05",
+   "language": "en",
+   "text": "The accomodation is really great, you can take a bus directly from the airport to 3 minutes from the apartment. Check-in, facilities, communication are at the highest level - everything seems amazing. There are a few things I'd suggest could be taken more care of: - The bathroom has a little smell sometimes, mostly because since everything is made of wood, the smell may remain - You have a \"small kitchen\" but you still need to wash the dishes in the bathroom, maybe add some place where you could at least let them dry - It may be really hot sometimes (and I came during winter with negative temps) - there are windows and an AC anyway But there are a lot of pros: - Amazing clean room with many <PERSON_1> (and there is also a supply closet where you can get more things if you need, such as tea coffee towels etc) - Lockers (they are amazing, if you arrive early or leave late even at 8pm, you can leave your Things there FREE of charge) - Check in and check out so easy Recommend!!!",
+   "score": 0.030865
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1736995133969421069,
+   "listing_id": 48817801,
+   "review_date": "2026-07-24",
+   "language": "en",
+   "text": "Spacious apartment at a convenient location. Smooth self check in and luggage storage process. Would definitely stay here again if I’m in town",
+   "score": 0.028067
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1657988875464168212,
+   "listing_id": 48604725,
+   "review_date": "2026-04-06",
+   "language": "en",
+   "text": "Very happy with our stay here - safe, clean, and appreciated the small touches in the room that made our stay more enjoyable. <PERSON_1> you so much! Would definitely stay again when visiting Vienna.",
+   "score": 0.026786
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1644974693030494595,
+   "listing_id": 48604725,
+   "review_date": "2026-03-19",
+   "language": "en",
+   "text": "My stay at Numa wood was good! The stay was as pictured. It was close to a bunch of transportation options which made navigating to and from the stay easy! I liked that for an additional fee you could have an earlier check in. However, there were a couple of minor downsides. It got pretty hot in the unit as AC is only available in the summer - not a huge deal as you can easily open a window but as a solo traveller, I didn’t feel comfortable having that open throughout the night. The other noticeable thing was that my unit smelled a bit like smoke and it was not ready for the time I selected (I paid for an early check in). Again not a huge deal to wait for a couple of extra minutes. Overall, I would recommend this stay! It was affordable, close to public transportation and the perfect size for my needs.",
+   "score": 0.024523
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1775330842424749216,
+   "listing_id": 48604725,
+   "review_date": "2026-09-15",
+   "language": "en",
+   "text": "I had a great stay in Vienna. The apartment looks exactly like the pictures; the interior features a lot of wood, which gives the space a very warm and cozy feel. Both the air conditioning and the hot water worked perfectly. The only minor detail is the kitchen setup, which seems better suited for guests who don't plan to cook. There is no kitchen sink (dishes must be washed in the bathroom), and using the stovetop requires moving the appliances around. Other than those details, everything else was great. Thank you!",
+   "score": 0.021584
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1583328978181445561,
+   "listing_id": 48604725,
+   "review_date": "2025-12-24",
+   "language": "en",
+   "text": "The hotel has a great location with many attractions within walking distance and a metro station nearly, which made getting around the city very easy and convenient. The room was very comfortable, clean, and cozy. Everything was well thought out, and it was pleasant to relax there after a long day of sightseeing. Overall, I really enjoyed my stay and would definitely recommend this hotel.",
+   "score": 0.020358
+  },
+  {
+   "scope": "Other listings from the same host",
+   "review_id": 1749997977251849027,
+   "listing_id": 48604725,
+   "review_date": "2026-08-11",
+   "language": "en",
+   "text": "We had a wonderful stay at <PERSON_0>! The place was beautiful, clean and in a great location. We really appreciated being able to check in earlier and the air conditioning was a big plus during the hot weather. We would definitely stay here again!",
+   "score": 0.020257
+  }
+ ],
+ "landmarks": [
+  "Wien Hauptbahnhof",
+  "Wien Westbahnhof",
+  "Wien Mitte",
+  "Praterstern",
+  "Franz-Josefs-Bahnhof",
+  "Stephansdom",
+  "Schloss Schönbrunn",
+  "Hofburg",
+  "Schloss Belvedere",
+  "Wiener Staatsoper",
+  "Rathaus",
+  "Parlament",
+  "Riesenrad",
+  "Naschmarkt",
+  "MuseumsQuartier",
+  "Kunsthistorisches Museum",
+  "Votivkirche",
+  "Hundertwasserhaus",
+  "Karlskirche",
+  "Albertina"
+ ],
+ "scenario": "C",
+ "original_question": "Summarize guest feedback on listing 48604277 over the last year. Do the host's other listings share the same complaints?"
+}

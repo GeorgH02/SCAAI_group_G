@@ -1,6 +1,8 @@
 """Real LangChain schemas/messages, fake model and SQL boundary; no services."""
 
 import importlib.util
+import json
+import re
 import unittest
 from unittest.mock import Mock, patch
 
@@ -26,7 +28,7 @@ class LangChainTests(unittest.TestCase):
         return AIMessage('', tool_calls=[{'name': name, 'args': args or {}, 'id': 'call_1'}])
 
     def test_all_adapters_preserve_evidence(self):
-        arguments = [{}, {'listing_ids': [1], 'check_in': '2026-12-31', 'check_out': '2027-01-01'},
+        arguments = [{'bedrooms': 1}, {'listing_ids': [1], 'check_in': '2026-12-31', 'check_out': '2027-01-01'},
                      {'district': 'Neubau'}, {'host_id': 7}, {'query': 'quiet'}]
         connection = object()
         for tool, args in zip(build_tools(connection), arguments):
@@ -40,7 +42,8 @@ class LangChainTests(unittest.TestCase):
     def test_schema_rejects_unsafe_or_mistyped_inputs(self):
         tool = build_tools(object())[0]
         for args in ({'sql': 'DELETE'}, {'limit': 101}, {'listing_ids': []},
-                     {'superhost': 'true'}, {'accommodates': True}, {'offset': -1}):
+                     {'superhost': 'true'}, {'accommodates': True}, {'bedrooms': -1},
+                     {'bedrooms': True}, {'offset': -1}):
             with self.assertRaises(ValueError), patch('langchain_agent.queries.search_listings') as query:
                 tool.invoke(args)
             query.assert_not_called()
@@ -99,6 +102,62 @@ class LangChainTests(unittest.TestCase):
                 flow.invoke('apartments')
         self.assertNotIn('SECRET', str(caught.exception))
         self.assertTrue(caught.exception.__suppress_context__)
+
+    def test_wrong_tool_arguments_are_returned_to_the_model_for_a_retry(self):
+        artifact = {'rows': [{'listing_id': 1}]}
+        flow = self.workflow([self.call('search_listings', {'check_in': '2026-12-31'}),
+                              self.call('search_listings', {'district': 'Neubau'}), AIMessage('')])
+        with patch('langchain_agent.queries.search_listings', return_value=artifact) as query:
+            result = flow.invoke('apartments')
+        self.assertEqual(result, {'status': 'evidence_ready', 'results': [artifact]})
+        query.assert_called_once()
+        feedback = [m.content for m in self.model.invoke.call_args.args[0] if 'Invalid arguments' in str(m.content)]
+        self.assertEqual(len(feedback), 1)
+        self.assertIn('check_in', feedback[0])
+        self.assertNotIn('2026-12-31', feedback[0])
+
+    def test_model_context_masks_text_but_not_ids_prices_or_sql(self):
+        artifact = {'groups': [{'average_base_price': '166.4712', 'listing_ids': [1545792]}],
+                    'rows': [{'listing_id': 1545792, 'name': 'private@example.com', 'date': '2026-05-01'}],
+                    'evidence': [{'sql': 'SELECT 1 UNION SELECT 2', 'parameters': ['private@example.com']}]}
+        flow = self.workflow([self.call(), AIMessage('')])
+        flow.mask = lambda s: re.sub(r'\d{4,}|private@example.com', '<MASKED>', s)
+        with patch('langchain_agent.queries.search_listings', return_value=artifact):
+            flow.invoke('apartments')
+        context = json.loads(self.model.invoke.call_args.args[0][-1].content)
+        self.assertEqual(context['groups'][0], {'average_base_price': '166.4712', 'listing_ids': [1545792]})
+        self.assertEqual(context['rows'][0], {'listing_id': 1545792, 'name': '<MASKED>', 'date': '2026-05-01'})
+        self.assertNotIn('evidence', context)  # SQL stays in the application result only
+
+    def test_bulky_fields_are_left_out_of_the_model_copy_only(self):
+        artifact = {'rows': [{'listing_id': 1, 'amenities': ['Wifi'] * 50, 'load_id': 'x', 'price': '99.00'}],
+                    'results': [{'listing_id': 1, 'status': 'available', 'calendar_evidence': [{'date': 'd'}] * 3}],
+                    'provenance': [{'scope': 'full'}]}
+        flow = self.workflow([self.call(), AIMessage('')])
+        with patch('langchain_agent.queries.search_listings', return_value=artifact):
+            result = flow.invoke('apartments')
+        self.assertEqual(result['results'][0], artifact)
+        context = json.loads(self.model.invoke.call_args.args[0][-1].content)
+        self.assertEqual(context, {'rows': [{'listing_id': 1, 'price': '99.00'}],
+                                   'results': [{'listing_id': 1, 'status': 'available'}]})
+
+    def test_rejected_argument_values_are_returned_to_the_model(self):
+        flow = self.workflow([self.call('search_listings', {'district': '24'}), AIMessage('')])
+        with patch('langchain_agent.queries.search_listings',
+                   side_effect=ValueError('district number must be between 1 and 23')):
+            result = flow.invoke('apartments')
+        self.assertEqual(result['status'], 'no_evidence')
+        self.assertIn('between 1 and 23', str(self.model.invoke.call_args.args[0][-1].content))
+
+    def test_long_id_lists_are_shortened_for_the_model_only(self):
+        artifact = {'groups': [{'listing_ids': list(range(1, 301))}]}
+        flow = self.workflow([self.call(), AIMessage('')])
+        with patch('langchain_agent.queries.search_listings', return_value=artifact):
+            result = flow.invoke('apartments')
+        self.assertEqual(len(result['results'][0]['groups'][0]['listing_ids']), 300)
+        context = json.loads(self.model.invoke.call_args.args[0][-1].content)
+        self.assertEqual(context['groups'][0]['listing_ids'][-1], '... 280 more IDs omitted')
+        self.assertEqual(len(context['groups'][0]['listing_ids']), 21)
 
     def test_round_call_and_context_budgets(self):
         flow = self.workflow([self.call()], max_rounds=1)

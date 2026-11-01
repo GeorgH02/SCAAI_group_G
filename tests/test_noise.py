@@ -62,6 +62,64 @@ class NoiseHelperTests(unittest.TestCase):
             noise.parse_args(['--gpkg', __file__, '--indicator', 'air', '--layer', 'x', '--band-column', 'b'])
 
 
+    def test_band_labels_of_the_2022_map_are_normalised(self):
+        self.assertEqual(noise.normalize_band('Lnight6064'), '60-64')
+        self.assertEqual(noise.normalize_band('Lnight4549'), '45-49')
+        self.assertEqual(noise.normalize_band('LnightGreaterThan70'), '>=70')
+        self.assertEqual(noise.normalize_band('55-59'), '55-59')
+        self.assertEqual(noise.band_floor(noise.normalize_band('Lnight6569')), 65)
+        for label in ('LnightLessThan45', 'unknown'):
+            with self.assertRaises(ValueError):
+                noise.normalize_band(label)
+
+    def test_download_follows_next_links_and_skips_repeated_features(self):
+        def feature(i, band='Lnight5559'):
+            return {'type': 'Feature', 'id': f'f.{i}', 'properties': {'category': band},
+                    'geometry': {'type': 'Polygon', 'coordinates': [[[16.3, 48.2], [16.31, 48.2], [16.31, 48.21], [16.3, 48.2]]]}}
+        pages = {
+            None: {'features': [feature(1), feature(2)], 'numberMatched': 3,
+                   'links': [{'rel': 'next', 'href': 'https://example/next'}]},
+            'https://example/next': {'features': [feature(2), feature(3, 'LnightGreaterThan70')], 'links': []},
+        }
+
+        class Response:
+            def __init__(self, body):
+                self.body = body
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return self.body
+
+        class Client:
+            calls = []
+
+            def get(self, url, params=None):
+                self.calls.append((url, params))
+                return Response(pages[None if params else url])
+
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'road.geojsonl'
+            client = Client()
+            self.assertEqual(noise.download_collection('laerm_2022_strasse_lnight', (16.1, 48.1, 16.6, 48.3), path,
+                                                       client=client), 3)
+            self.assertIn('bbox', client.calls[0][1])
+            self.assertIsNone(client.calls[1][1])
+            self.assertFalse(path.with_suffix('.partial').exists())
+            zones = list(noise.geojson_zones(path))
+        self.assertEqual([z[0] for z in zones], ['Lnight5559', 'Lnight5559', 'LnightGreaterThan70'])
+        self.assertEqual({(z[2], z[3]) for z in zones}, {(4326, 'geojson')})
+
+    def test_arguments_accept_an_api_collection_instead_of_a_file(self):
+        args = noise.parse_args(['--ogc-collection', 'laerm_2022_schiene_lnight', '--indicator', 'rail'])
+        self.assertEqual(args.ogc_collection, 'laerm_2022_schiene_lnight')
+        for argv in (['--ogc-collection', 'x;drop', '--indicator', 'rail'],
+                     ['--gpkg', __file__, '--indicator', 'road'],
+                     ['--gpkg', __file__, '--ogc-collection', 'a', '--indicator', 'road']):
+            with self.assertRaises(SystemExit):
+                noise.parse_args(argv)
+
 def polygon_blob(x0, y0, x1, y1, srs_id):
     ring = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
     wkb = struct.pack('<BIII', 1, 3, 1, 5) + b''.join(struct.pack('<dd', *point) for point in ring)

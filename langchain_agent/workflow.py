@@ -9,8 +9,21 @@ from urllib.parse import urlparse
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langsmith import tracing_context
+from pydantic import ValidationError
 
 from langchain_agent.tools import build_tools
+
+
+# Kept in the application result for citations but left out of the model's copy: SQL text, provenance,
+# per-night calendar rows, full amenity lists and load bookkeeping. Without this a listing search plus an
+# availability check is about 17,000 tokens, more than the model context, and minutes of CPU prompt time.
+MODEL_OMIT_KEYS = frozenset({
+    'evidence', 'provenance', 'calendar_evidence', 'amenities', 'load_id', 'host_load_id', 'listing_load_id',
+    'calendar_load_id', 'listing_load_ids', 'host_load_ids', 'last_scraped', 'source_file',
+})
+MAX_MODEL_IDS = 20
+# Plain numbers, ISO dates/timestamps and UUIDs carry no personal data.
+NOT_TEXT = re.compile(r'-?\d+(?:\.\d+)?|\d{4}-\d{2}-\d{2}(?:[T ][\d:.+\-Z]+)?|[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}')
 
 
 class WorkflowError(RuntimeError):
@@ -43,7 +56,10 @@ def local_model(*, model='qwen2.5:7b', base_url='http://127.0.0.1:21434/v1', tim
     import httpx
 
     return ChatOpenAI(model=model, base_url=base_url, api_key='local-only',
-                      temperature=0, timeout=timeout, max_retries=0, max_tokens=1024,
+                      temperature=0, timeout=timeout, max_retries=0,
+                      # LangChain sends max_tokens as max_completion_tokens, which Ollama ignores
+                      # (generation then runs until the timeout); send the field Ollama reads.
+                      extra_body={'max_tokens': 1024},
                       http_socket_options=(),
                       http_client=httpx.Client(trust_env=False, follow_redirects=False),
                       http_async_client=httpx.AsyncClient(trust_env=False, follow_redirects=False))
@@ -81,7 +97,7 @@ class EvidenceWorkflow:
     """
 
     def __init__(self, connection, model, *, mask, input_guard, evidence_guard, clean_evidence=None,
-                 max_rounds=4, max_calls=8, max_context_chars=60000):
+                 retriever=None, max_rounds=4, max_calls=8, max_context_chars=60000):
         for value, maximum in ((max_rounds, 10), (max_calls, 20), (max_context_chars, 200000)):
             if type(value) is not int or not 1 <= value <= maximum:
                 raise ValueError('Invalid workflow budget')
@@ -89,7 +105,7 @@ class EvidenceWorkflow:
             raise ValueError('Masking and both guards are required')
         if clean_evidence is not None and not callable(clean_evidence):
             raise ValueError('clean_evidence must be callable')
-        self.tools = {tool.name: tool for tool in build_tools(connection)}
+        self.tools = {tool.name: tool for tool in build_tools(connection, retriever)}
         self.model = model.bind_tools(list(self.tools.values()))
         self.mask, self.input_guard, self.evidence_guard = mask, input_guard, evidence_guard
         self.clean_evidence = clean_evidence
@@ -141,12 +157,25 @@ class EvidenceWorkflow:
             from langchain_core.messages import AIMessage
             messages.append(AIMessage(content='', tool_calls=safe_calls))
             for call in safe_calls:
-                result = self.tools[call['name']].invoke(call['args'], config=config)
+                try:
+                    result = self.tools[call['name']].invoke(call['args'], config=config)
+                except ValueError as error:
+                    # Wrong arguments: tell the model what was wrong (never the values) so it can retry.
+                    # ValidationError comes from the tool schema, plain ValueError from the query's own checks;
+                    # database failures are QueryError (RuntimeError) and still stop the request.
+                    problems = ('; '.join(f"{'.'.join(map(str, e['loc'])) or 'arguments'}: {e['msg']}"
+                                          for e in error.errors()[:5])
+                                if isinstance(error, ValidationError) else str(error)[:200])
+                    calls += 1
+                    messages.append(ToolMessage(content=f'Invalid arguments for {call["name"]}: {problems}. '
+                                                        'Use only the parameters this tool defines.',
+                                                tool_call_id=call['id']))
+                    continue
                 if self.clean_evidence:
                     result = self.clean_evidence(result)
                 # Keep SQL/IDs intact in the application artifact. Only a redacted
                 # copy is eligible for model context, after an indirect-input guard.
-                context = self._masked(json.dumps(result, ensure_ascii=False))
+                context = json.dumps(self._mask_evidence(result), ensure_ascii=False)
                 if self.evidence_guard(context) is not True:
                     return {'status': 'blocked_evidence', 'results': []}
                 results.append(result)
@@ -156,6 +185,27 @@ class EvidenceWorkflow:
                     return {'status': 'context_limit', 'results': results}
                 messages.append(ToolMessage(content=context, tool_call_id=call['id']))
         return {'status': 'budget_exhausted', 'results': results}
+
+    def _mask_evidence(self, value):
+        """The model's copy of a tool result: text values masked, numbers/IDs/dates intact, bulky keys left out.
+
+        Masking the serialized JSON as one string let PII detection turn listing IDs and prices into
+        <PHONE_NUMBER_n> and break the JSON.
+        """
+        if isinstance(value, dict):
+            return {k: self._mask_evidence(v) for k, v in value.items() if k not in MODEL_OMIT_KEYS}
+        if isinstance(value, list):
+            if len(value) > MAX_MODEL_IDS and all(type(v) is int for v in value):
+                # Long ID lists (e.g. every listing in a price group) overflow the model context;
+                # the application result keeps the complete list.
+                return [*value[:MAX_MODEL_IDS], f'... {len(value) - MAX_MODEL_IDS} more IDs omitted']
+            return [self._mask_evidence(v) for v in value]
+        if isinstance(value, str) and value.strip() and not NOT_TEXT.fullmatch(value):
+            masked = self.mask(value)
+            if not isinstance(masked, str):
+                raise ValueError('Masking failed')
+            return masked
+        return value
 
     def _mask_values(self, value):
         if isinstance(value, str):

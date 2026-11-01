@@ -1,0 +1,22 @@
+# label;sentence  (checked against the saved scenario B evidence in bench/fixtures/scenario_B.json)
+# supported = true and cited correctly, unsupported = should be removed by the output guard
+supported;Superhost listings in Leopoldstadt have an average snapshot base price of €166.04 [listing 173375].
+supported;Listings of other hosts in Leopoldstadt have an average base price of €149.04 [listing 38768].
+supported;On average, superhost listings in Leopoldstadt are more expensive than listings of other hosts [listing 173375] [listing 38768].
+supported;There are 327 superhost listings in Leopoldstadt [listing 173375].
+supported;A guest describes the host's house as cozy, warm and clean [review 1637631932748446648].
+supported;One guest says the host gave a lot of great recommendations [review 1444823166529841036].
+supported;A guest calls the place quiet and cosy [review 1570276908877182086].
+supported;Guests found the location fantastic [review 1661599355457216501].
+supported;The host was welcoming and helpful during the stay [review 1570276908877182086].
+supported;A guest writes that the hosts were excellent and the place charming [review 1324624502165709172].
+unsupported;Superhost listings in Leopoldstadt have an average base price of €186.04 [listing 173375].
+unsupported;Superhost listings in Leopoldstadt are cheaper than listings of other hosts [listing 173375] [listing 38768].
+unsupported;There are 500 superhost listings in Leopoldstadt [listing 173375].
+unsupported;Superhost listings in Leopoldstadt have an average base price of €166.04 [listing 999999].
+unsupported;A guest says the apartment has a rooftop pool [review 1637631932748446648].
+unsupported;One guest complains that the host gave no recommendations at all [review 1444823166529841036].
+unsupported;A guest says the place was very noisy at night [review 1570276908877182086].
+unsupported;The host offers free airport pickup for every guest [review 1661599355457216501].
+unsupported;The flat is a 2-minute walk from Stephansdom [review 1324624502165709172].
+unsupported;All superhost listings in Leopoldstadt have parking.

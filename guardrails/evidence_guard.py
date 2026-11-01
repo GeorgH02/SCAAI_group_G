@@ -49,3 +49,23 @@ def remove_hostile_rows(result):
         return result
     notice = f'{len(removed)} row(s) were removed because their text looked like instructions to the model.'
     return {**result, 'rows': kept, 'rows_removed_by_guard': removed, 'notices': [*result.get('notices', []), notice]}
+
+
+# Written by the application, not by hosts or guests: the SQL that produced a result and its provenance.
+TRUSTED_KEYS = ('evidence', 'provenance', 'notices', 'tool', 'retrieval_method')
+
+
+def context_is_safe(context):
+    """Evidence guard for the workflow: True unless guest- or host-written text looks like an injection.
+
+    The application's own SQL is skipped, because legitimate queries match the database-command rule.
+    Text that is not valid JSON is checked as a whole.
+    """
+    import json
+    try:
+        value = json.loads(context)
+    except (TypeError, ValueError):
+        return find_injection(context) is None
+    if isinstance(value, dict):
+        value = {k: v for k, v in value.items() if k not in TRUSTED_KEYS}
+    return find_injection(value) is None

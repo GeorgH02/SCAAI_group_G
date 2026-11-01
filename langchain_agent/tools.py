@@ -25,6 +25,7 @@ class ListingSearch(Page):
     district: Text | None = None
     room_type: Text | None = None
     accommodates: Annotated[int, Field(ge=1, le=1000)] | None = None
+    bedrooms: Annotated[int, Field(ge=0, le=1000)] | None = None
     min_price: Annotated[str, Field(max_length=30)] | None = None
     max_price: Annotated[str, Field(max_length=30)] | None = None
     amenities: Annotated[list[Text], Field(max_length=50)] | None = None
@@ -57,15 +58,34 @@ class ReviewSearch(Page):
     until: str | None = None
 
 
+class HybridSearch(Arguments):
+    query: Annotated[str, Field(min_length=1, max_length=500)]
+    listing_ids: IDs | None = None
+    language: Annotated[str, Field(min_length=1, max_length=10)] | None = None
+    since: str | None = None
+    until: str | None = None
+    limit: Annotated[int, Field(ge=1, le=30)] = 8
+
+
+HYBRID_DESCRIPTION = (
+    'Semantic + keyword search of masked guest reviews (multilingual, German and English), fused and reranked. '
+    'Use for themes or impressions such as "quiet at night", "clean", "helpful host"; pass listing_ids from '
+    'search_listings to search only those listings. Returns review_id, listing_id and chunk_id per row for citations. '
+    'Snapshot ends 2026-09-17.')
+
 DEFINITIONS = (
     ('search_listings', ListingSearch,
-     'Filter Vienna snapshot listings by exact district/room/amenities, minimum capacity, '
+     'Filter Vienna snapshot listings by district (its name such as "Alsergrund", or its number 1-23 such as 9), '
+     'exact room type, amenities (words that must appear in an amenity name, e.g. ["balcony", "washer"]), minimum capacity, '
      'room_type must be exactly one of: Entire home/apt, Private room, Shared room, Hotel room; omit it unless asked. '
+     'bedrooms is an exact bedroom-count filter. Use it when the user requests a bedroom count. '
      'inclusive base prices (decimal strings), superhost status or IDs. near_landmark (a curated station or '
      'sight such as "Wien Westbahnhof"; unknown names return the known list) with radius_m keeps listings within that '
-     'distance, nearest first. max_night_noise_db keeps listings whose worst Lnight band starts below that dB. '
+     'distance, nearest first. max_night_noise_db keeps listings whose worst Lnight band starts below that dB '
+     '(the map starts at 45; use about 55 for "quiet"); if none qualify, the quietest are returned with a notice. '
      'Returns paginated evidence.'),
     ('check_availability', Availability,
+     'Requires explicit check_in and check_out; ask for the checkout date if it is missing, never assume a stay length. '
      'Check every occupied night in [check_in, check_out), applying total stay length to '
      'each night. Missing coverage is unknown. Snapshot conditions are not live availability.'),
     ('compare_host_prices', PriceComparison,
@@ -79,7 +99,7 @@ DEFINITIONS = (
 )
 
 
-def build_tools(connection):
+def build_tools(connection, retriever=None):
     """Bind tools to one caller-owned idle connection. Use sequential execution.
 
     Results retain the complete queries.py evidence contract. The caller owns
@@ -92,6 +112,12 @@ def build_tools(connection):
             return getattr(queries, name)(connection, **given)
         return execute
 
-    return [StructuredTool.from_function(
+    tools = [StructuredTool.from_function(
         func=bind(name), name=name, description=description, args_schema=schema,
     ) for name, schema, description in DEFINITIONS]
+    if retriever is not None:
+        def hybrid(**arguments):
+            return retriever.search(**{k: v for k, v in arguments.items() if v is not None})
+        tools.append(StructuredTool.from_function(
+            func=hybrid, name='hybrid_search_reviews', description=HYBRID_DESCRIPTION, args_schema=HybridSearch))
+    return tools

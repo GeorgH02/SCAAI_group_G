@@ -1,0 +1,715 @@
+{
+ "question": "Entire apartments in Neubau for 4 guests under €150, free on New Year's Eve, where reviews say it's quiet at night. Use New Year's Eve on December 31, 2026.",
+ "sql_evidence": [
+  {
+   "tool": "search_listings",
+   "notices": [
+    "Prices are snapshot base prices, not date-specific quotes; no currency conversion is performed."
+   ],
+   "rows": [
+    {
+     "listing_id": 252052,
+     "host_id": 175131,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 8,
+     "bedrooms": "2",
+     "price": "113.28",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": "50-54"
+    },
+    {
+     "listing_id": 2002221,
+     "host_id": 146196,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 6,
+     "bedrooms": "1",
+     "price": "150.00",
+     "host_is_superhost": false,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": "50-54"
+    },
+    {
+     "listing_id": 2359504,
+     "host_id": 8632750,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "114.49",
+     "host_is_superhost": false,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": ">=70",
+     "lnight_rail_band": "55-59"
+    },
+    {
+     "listing_id": 5558843,
+     "host_id": 6666498,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "65.02",
+     "host_is_superhost": false,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": "50-54"
+    },
+    {
+     "listing_id": 16059527,
+     "host_id": 9851118,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "126.50",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "60-64",
+     "lnight_rail_band": null
+    },
+    {
+     "listing_id": 19702032,
+     "host_id": 6845230,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 6,
+     "bedrooms": "3",
+     "price": "73.38",
+     "host_is_superhost": false,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": ">=70",
+     "lnight_rail_band": "55-59"
+    },
+    {
+     "listing_id": 24615073,
+     "host_id": 146196,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "143.00",
+     "host_is_superhost": false,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": "50-54"
+    },
+    {
+     "listing_id": 43837652,
+     "host_id": 621105,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "34.30",
+     "host_is_superhost": false,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": ">=70",
+     "lnight_rail_band": "50-54"
+    },
+    {
+     "listing_id": 50595020,
+     "host_id": 189066567,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "111.53",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": "55-59"
+    },
+    {
+     "listing_id": 569230140817044635,
+     "host_id": 140573307,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 7,
+     "bedrooms": "2",
+     "price": "133.50",
+     "host_is_superhost": false,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": null
+    },
+    {
+     "listing_id": 757708125127821849,
+     "host_id": 140573307,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 5,
+     "bedrooms": "2",
+     "price": "131.50",
+     "host_is_superhost": false,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": "55-59"
+    },
+    {
+     "listing_id": 761677339791157988,
+     "host_id": 474095930,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "2",
+     "price": "145.50",
+     "host_is_superhost": false,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": "55-59"
+    },
+    {
+     "listing_id": 766705215921692147,
+     "host_id": 40341714,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "2",
+     "price": "85.61",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": ">=70",
+     "lnight_rail_band": "55-59"
+    },
+    {
+     "listing_id": 781643931771873585,
+     "host_id": 1547126,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "134.87",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": null
+    },
+    {
+     "listing_id": 781659185752510771,
+     "host_id": 1547126,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "115.86",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": null
+    },
+    {
+     "listing_id": 781672102383476037,
+     "host_id": 1547126,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "134.87",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": "55-59"
+    },
+    {
+     "listing_id": 781753563659612119,
+     "host_id": 1547126,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "148.06",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": null
+    },
+    {
+     "listing_id": 781761311177750173,
+     "host_id": 1547126,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "148.06",
+     "host_is_superhost": true,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": "50-54"
+    },
+    {
+     "listing_id": 785417100157263296,
+     "host_id": 71074913,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "112.94",
+     "host_is_superhost": false,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": "65-69",
+     "lnight_rail_band": "55-59"
+    },
+    {
+     "listing_id": 879501718377055540,
+     "host_id": 436883702,
+     "neighbourhood": "Neubau",
+     "room_type": "Entire home/apt",
+     "accommodates": 4,
+     "bedrooms": "1",
+     "price": "102.00",
+     "host_is_superhost": false,
+     "snapshot_date": "2026-09-17",
+     "lnight_road_band": ">=70",
+     "lnight_rail_band": ">=70"
+    }
+   ],
+   "total_matches": 52,
+   "has_more": true
+  },
+  {
+   "tool": "check_availability",
+   "notices": [
+    "Snapshot availability only; checkout is excluded. Missing calendar rows or stay bounds prevent confirmation."
+   ],
+   "check_in": "2026-12-31",
+   "check_out": "2027-01-01",
+   "availability": [
+    {
+     "listing_id": 252052,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "unavailable"
+      },
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    },
+    {
+     "listing_id": 2002221,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    },
+    {
+     "listing_id": 2359504,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    },
+    {
+     "listing_id": 5558843,
+     "status": "unknown",
+     "failures": [],
+     "unknowns": [
+      {
+       "date": "2026-12-31",
+       "reason": "missing_calendar"
+      }
+     ]
+    },
+    {
+     "listing_id": 16059527,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "unavailable"
+      },
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    },
+    {
+     "listing_id": 19702032,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "unavailable"
+      },
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    },
+    {
+     "listing_id": 24615073,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    },
+    {
+     "listing_id": 43837652,
+     "status": "unknown",
+     "failures": [],
+     "unknowns": [
+      {
+       "date": "2026-12-31",
+       "reason": "missing_calendar"
+      }
+     ]
+    },
+    {
+     "listing_id": 50595020,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    },
+    {
+     "listing_id": 569230140817044635,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "unavailable"
+      },
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    },
+    {
+     "listing_id": 757708125127821849,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "unavailable"
+      },
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    },
+    {
+     "listing_id": 761677339791157988,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "unavailable"
+      },
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    },
+    {
+     "listing_id": 766705215921692147,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "unavailable"
+      },
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    },
+    {
+     "listing_id": 781643931771873585,
+     "status": "available",
+     "failures": [],
+     "unknowns": []
+    },
+    {
+     "listing_id": 781659185752510771,
+     "status": "available",
+     "failures": [],
+     "unknowns": []
+    },
+    {
+     "listing_id": 781672102383476037,
+     "status": "available",
+     "failures": [],
+     "unknowns": []
+    },
+    {
+     "listing_id": 781753563659612119,
+     "status": "available",
+     "failures": [],
+     "unknowns": []
+    },
+    {
+     "listing_id": 781761311177750173,
+     "status": "available",
+     "failures": [],
+     "unknowns": []
+    },
+    {
+     "listing_id": 785417100157263296,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    },
+    {
+     "listing_id": 879501718377055540,
+     "status": "unavailable",
+     "failures": [
+      {
+       "date": "2026-12-31",
+       "reason": "minimum_nights"
+      }
+     ],
+     "unknowns": []
+    }
+   ]
+  }
+ ],
+ "review_evidence": [
+  {
+   "scope": "Matching listings",
+   "review_id": 1502139196631424642,
+   "listing_id": 24615073,
+   "review_date": "2025-09-03",
+   "language": "en",
+   "text": "This apartment is located in Neubau (city centre) - we walked everywhere from restaurants to museums, we enjoyed Restaurant Lana for Italian food. And about 30 mins walk to visit downtown area! The transport is nearby as well. The apartment is spacious and has a nice garden area. Felt quiet and safe there. Had a few problems with wifi but got sorted quickly. We enjoyed our stay at <PERSON_0>’s ☺️",
+   "score": 0.133264
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1449222614665025188,
+   "listing_id": 761677339791157988,
+   "review_date": "2025-06-22",
+   "language": "sv",
+   "text": "<PERSON_1> i Neubau som är en supermysig del av Wien. Vi trivdes otroligt bra. <PERSON_2>, bekväm för fyra personer och höll vad den lovade.",
+   "score": 0.051218
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1247696887203085550,
+   "listing_id": 757708125127821849,
+   "review_date": "2024-09-17",
+   "language": "sv",
+   "text": "Bra centralt boende i Neubau med närhet till mycket <PERSON_1> sevärdheter. Trevliga kvarter med bra restauranger och goda kommunikationer. <PERSON_2>! <PERSON_3> perfekt boende för en familj med fyra vuxna.",
+   "score": 0.050755
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1626109092778109950,
+   "listing_id": 785417100157263296,
+   "review_date": "2026-02-21",
+   "language": "fr",
+   "text": "<PERSON_1>appartement d’<PERSON_0> est <PERSON_2>, confortable, <PERSON_3> peu sombre (c’est un rez de chaussé). Il est proche à pied de l’innerstadt, tout à côté du quartier des musées. Le quartier de Neubau est authentique, bcp de magasins de créateurs, <PERSON_4>, de bars très chouette. Il y a aussi tous les commerces nécessaires pour faire des courses. Parfait.",
+   "score": 0.038524
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1658009369360323815,
+   "listing_id": 761677339791157988,
+   "review_date": "2026-04-06",
+   "language": "de",
+   "text": "Die Lage der Wohnung im 7. Bezirk (Neubau) ist wirklich hervorragend – sehr zentral und umgeben von vielen Cafés, Restaurants und Einkaufsmöglichkeiten. Man erreicht vieles bequem zu Fuß, was <PERSON_1> <PERSON_2>. <PERSON_3> entspricht die Wohnung selbst nicht <PERSON_4>, den die Fotos im Inserat vermitteln. Diese scheinen direkt nach Renovierungsarbeiten entstanden zu sein, während der aktuelle Zustand deutlich abgewohnter wirkt und insgesamt wartungsbedürftig ist. Es gab einige praktische Mängel: Die Wohnungstür lässt sich nur schwer schließen, die Badezimmertür schließt nicht richtig, und es sind keine Schlüssel vorhanden. <PERSON_5> in der <PERSON_6>, und die <PERSON_7> ließ insgesamt zu wünschen übrig. Insgesamt hat die tolle <PERSON_8> <PERSON_9> etwas aufgewertet, jedoch sollte der Zustand der <PERSON_10> dringend verbessert werden, damit er wieder den Erwartungen entspricht, die durch <PERSON_11> geweckt werden.",
+   "score": 0.00479
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1251331648653899977,
+   "listing_id": 2002221,
+   "review_date": "2024-09-22",
+   "language": "en",
+   "text": "Two friends traveling review. Pros: great location, great responsive host, new dishwasher and washer machine, no problems with hot water. Cons: big patches of black mold in the shower that I had to clean before using, kitchen pans with the remains of food, lack of bed lining for the number of beds even I asked/reminded 24 hrs ahead of stay, 2 kids size blankets with duvets for main bed. And only mattress cover was provided to set up second bed (kitchen futon). We had to use parts of main bed to arrange the second separate bed. The weird dusty parts behind kitchen futon.",
+   "score": 0.001242
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1682617220139698259,
+   "listing_id": 2002221,
+   "review_date": "2026-05-10",
+   "language": "en",
+   "text": "I can only recommend this accommodation — you’re right in the center of everything. You can have an excellent breakfast just next to the entrance. The city center is within walking distance, and both the metro and bus stops are only a short walk away. And if you’re looking for nightlife, clubs with live concerts are almost around the corner. At the same time, you sleep in complete peace in a quiet inner courtyard, where you wake up in the morning to birds singing. Truly a wonderful place. The apartment is very spacious, clean, and very well equipped.",
+   "score": 0.000737
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1723044045103897609,
+   "listing_id": 781753563659612119,
+   "review_date": "2026-07-05",
+   "language": "en",
+   "text": "The apartment has a very good location in Vienna, with the metro station very close by. The apartment was quite clean, so overall our impression of the location and cleanliness was positive. <PERSON_1>, we were disappointed with the communication from the hosts. Even before booking, we asked a question about the apartment but never received a reply. Despite this, we decided to book because of the convenient location. Later, our question about the air conditioning also went unanswered. When we checked out earlier and informed the hosts that we had left the apartment and the keys, the message was read but received no response not even a simple \"thank you\" or \"goodbye.\" We would have appreciated slightly friendlier and more attentive communication with guests. Overall, the apartment benefits from its excellent location and good level of cleanliness, but communication with guests and a few practical issues could definitely be improved.",
+   "score": 0.00068
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1521698757035546527,
+   "listing_id": 781672102383476037,
+   "review_date": "2025-09-30",
+   "language": "en",
+   "text": "The apartment is very new and well-equipped. Both the living room and the bedroom have windows with plenty of natural light. The rooms are quite spacious — more than enough for two people. Transportation is convenient: there’s a bus stop just a few dozen meters away, with lines going to the train station and the city center. Within a few hundred meters, you’ll find a shopping street and a metro station, offering everything from dining to shopping. Even walking to the inner city takes only about 20–30 minutes. Across the street, there’s a glass recycling station, so you may occasionally hear the sound of bottles being dropped, but it’s not loud with the windows closed. The bedroom faces the other side, so it doesn’t affect sleep at night. Overall, it’s a very nice place.",
+   "score": 0.000382
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1639094977092592947,
+   "listing_id": 781643931771873585,
+   "review_date": "2026-03-11",
+   "language": "en",
+   "text": "Overall, this is an apartment that has a very high end vibe, as long as you don't look too close. In our case, the previous tenant's checkout was clearly not completed on time, resulting in some hair being left in the shower and the dishwasher being absolutely full and still running when we entered the apartment (even later than our agreed upon check in time). This resulted in us having to put away and organize in the cupboards almost the entire apartment's worth of dishes, glasses and cutlery that the previous tenant had used. It was not a big deal, but being forced to do house chores as the first thing upon arrival after a flight is absolutely unacceptable, especially for a place rated this highly. Also, there was a feint musty smell emanating from the coat rack at the entrance and some nigh invisible liquid drop stains on the floor around the toilet. It felt like they cut a lot of corners cleaning up to make the place presentable but no reasonable standard was upheld.",
+   "score": 0.000332
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1253546723473309720,
+   "listing_id": 252052,
+   "review_date": "2024-09-25",
+   "language": "da",
+   "text": "<PERSON_1> centralt beliggende tæt på det hele. <PERSON_2> midt inde i byen, var den trukket ind i en baggård, <PERSON_3>, hvilket var perfekt for os, da vi havde en lille pige på 8 måneder med. <PERSON_4> der var brug for. <PERSON_5> alt i alt en super familievenlig og fin lejlighed. <PERSON_0> var en rigtig <PERSON_6>, som var nem at få fat <PERSON_7> fiksede de problemer der kunne komme. <PERSON_8> vores varmeste anbefaling af stedet og værten 😊",
+   "score": 0.00032
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1442677180040205461,
+   "listing_id": 781753563659612119,
+   "review_date": "2025-06-13",
+   "language": "en",
+   "text": "It is a commercial operation (the whole building is managed by a company). The location is excellent and the apartment has a very nice terrace. The apartment itself feels a bit cluttered with lots of furniture. The shower area has a glass that only partially closes it: I had to construct a barrier with towels to prevent water from getting into the bedroom. I had a problem with cigarette smoke: I was told that some workers had been using the balcony of the apartment where I stayed in to smoke and the apartment smelled of cigarette smoke when I checked-in. I did not like how that was handled by the managing company: they told me to ventilate the place for 24 hours and see if that made a difference. I opened all the windows and could not sleep the first night because of noise from the street. Overall, it was ok but I will not be coming back. It did not work for me.",
+   "score": 0.000287
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1282515126018677815,
+   "listing_id": 2002221,
+   "review_date": "2024-11-04",
+   "language": "en",
+   "text": "Large and sunny apartment in a bustling part of town. Easy walk into the city centre, tram on the street and plenty of delicious cafes and restaurants. Kitchen was useful, with new dishwasher and washing machine. Well heated - easy to dry washed clothes. Has a shelf toilet (<PERSON_1>), and the king bed is actually a split king bed. Some small fixtures could be repaired but didn’t bother us. <PERSON_0> was responsive over several public holiday days, and very kind to let us extend our stay. Generous check out time at midday. Thank you!",
+   "score": 0.000282
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1324641736361036206,
+   "listing_id": 252052,
+   "review_date": "2025-01-01",
+   "language": "en",
+   "text": "<PERSON_0> has been a super friendly, very caring and proactive host. The apartment was exactly as expected, cozy, comfortable and very nice, equipped also with complimentary fruit and chocolate (very appreciated!). I really appreciated <PERSON_0>'s support and interest in our wellbeing, she checked on us via text multiple times and that made us feel very well cared for. The location is also great, Museums Quartier is full of nice bars, restaurants and attractions, also super well connected with all the means of transport.",
+   "score": 0.000274
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1280428474939144327,
+   "listing_id": 252052,
+   "review_date": "2024-11-01",
+   "language": "en",
+   "text": "We stayed as a family with 2 kids for about a month and had a great time, location is next to various restaurants, coffee shops & supermarkets, neighborhood has a great vibe and the inner city is within walking distance. <PERSON_0> was very responsive and the apartment is cozy & spacious, we would sure love to comeback in our next trip to Vienna.",
+   "score": 0.000264
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1623252925559565468,
+   "listing_id": 781761311177750173,
+   "review_date": "2026-02-17",
+   "language": "en",
+   "text": "The unit is a decent, basic spot that covers all the essentials for a short stay. However, potential guests should be aware that the apartment shares a wall with the elevator shaft. There is a persistent, rhythmic knocking noise (similar to an <PERSON_1>) whenever the elevator is in use. Unfortunately, the noise was significant enough that I wouldn't choose to stay here again.",
+   "score": 0.000238
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1597169473647946656,
+   "listing_id": 50595020,
+   "review_date": "2026-01-12",
+   "language": "en",
+   "text": "I had a wonderful stay at this apartment. The location is excellent and very convenient, making it easy to get around and enjoy the area. The host was outstanding — extremely kind, respectful, and always quick to respond, which made the entire experience smooth and comfortable. The apartment itself was well-equipped with everything I needed, clean, and thoughtfully prepared. I genuinely felt at home during my stay. If I return to the area and the apartment is available, I would definitely book it again without hesitation. The only minor point to mention is that the washing machine is shared with another apartment. However, this did not impact my stay at all and would not prevent me from choosing this place again, as everything else was truly excellent. Highly recommended.",
+   "score": 0.000236
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1346352091070328227,
+   "listing_id": 781659185752510771,
+   "review_date": "2025-01-31",
+   "language": "en",
+   "text": "Great place, I will book it any time in Vienna if free ;)",
+   "score": 0.000195
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1545660972563233652,
+   "listing_id": 19702032,
+   "review_date": "2025-11-02",
+   "language": "en",
+   "text": "<PERSON_1>’s Home is in the perfect área of Vienna. We rented his space for 2 months and it was our base in Europe. We enjoyed to be close to many places - very central. The building that the apartment is located dis old but is very good even tho is not the most new building. The apartment has everything you need. We only had a few problems with the water system and the washing mashine. <PERSON_0> was trying to help always and doing his best to help us. I would say that the only hard thing in the apartment is the washing machine that everyone really had a hard time washing clothes cuz is in a very bad place and you can barely put your clothes in. Other than that we enjoy the space. The apartment is big and comfortable.",
+   "score": 0.000175
+  },
+  {
+   "scope": "Matching listings",
+   "review_id": 1600022832828912854,
+   "listing_id": 781659185752510771,
+   "review_date": "2026-01-16",
+   "language": "en",
+   "text": "The apartment was absolutely amazing. Both the building and the apartment were extremely clean, well organized, and felt brand new, as if we were the first guests to stay there. The check-in process was very easy, with clear instructions, and everything in the apartment was simple to understand and use. It was clear that a lot of thought went into every detail, and it truly felt like staying in a high-end hotel room. The location is fantastic, very central, in a cool neighborhood, close to great restaurants, cafés, and lovely shops. We highly recommend this place!",
+   "score": 0.000172
+  }
+ ],
+ "landmarks": [
+  "Wien Hauptbahnhof",
+  "Wien Westbahnhof",
+  "Wien Mitte",
+  "Praterstern",
+  "Franz-Josefs-Bahnhof",
+  "Stephansdom",
+  "Schloss Schönbrunn",
+  "Hofburg",
+  "Schloss Belvedere",
+  "Wiener Staatsoper",
+  "Rathaus",
+  "Parlament",
+  "Riesenrad",
+  "Naschmarkt",
+  "MuseumsQuartier",
+  "Kunsthistorisches Museum",
+  "Votivkirche",
+  "Hundertwasserhaus",
+  "Karlskirche",
+  "Albertina"
+ ],
+ "scenario": "A",
+ "original_question": "Entire apartments in Neubau for 4 guests under €150, free on New Year's Eve, where reviews say it's quiet at night.",
+ "evidence_source": "planned tool calls"
+}

@@ -30,6 +30,29 @@ or `bash scripts/start_llm.sh` (Linux). See [local LLM setup](docs/ollama.md).
 With the server ready, open [try_agent.ipynb](try_agent.ipynb), select the
 project kernel, and run its cells for a LangChain demo using fictional listings.
 
+## Streamlit chat
+
+After running the pipeline and starting Ollama, launch the local chat UI:
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run app1.py
+```
+
+The chat uses the guarded SQL workflow plus the hybrid review search described below
+(Qdrant vectors and PostgreSQL full text over all loaded reviews, reranked); set `RERANK=0` to skip
+the reranker. The pipeline lives in `assistant/pipeline.py` and is shared with the API's
+`POST /answer` endpoint (see [api/README.md](api/README.md)). The first request loads local privacy
+and embedding models. Set `DATABASE_URL` to a dedicated SELECT-only PostgreSQL
+login when not using the local development database defaults. `QDRANT_URL`
+defaults to `http://127.0.0.1:6353`; use `QDRANT_API_KEY` if configured. Review
+summaries are AI-generated and pass through the output guard (below) before they
+are shown. Review-text filtering is heuristic, so this is a prototype, not a
+production safety guarantee. Listing searches can filter by exact bedroom count; review searches
+recognize month-and-year dates such as “March 2026.” Availability and prices
+describe the **2026-09-17 snapshot**, not live booking data. If a New Year's Eve
+question has no year, choose the intended year in the sidebar; the UI will not
+guess it.
+
 ## Ollama with Docker Compose
 
 From the project folder, start the container and download the model once:
@@ -64,6 +87,17 @@ For an NVIDIA GPU, start Ollama with the override file instead:
 docker compose -f compose.yaml -f compose.gpu.yaml up -d ollama
 ```
 
+For an AMD integrated GPU (e.g. Radeon 780M) use `compose.vulkan.yaml` the same way.
+
+## Quantization benchmark
+
+`docs/benchmarks.md` compares the answer model at FP16, INT8 (Q8_0) and INT4 (Q4_K_M): time to first token,
+tokens/s, valid JSON and sentences verified by the output guard. On the Radeon 780M, INT8 was the best
+trade-off; select a model for the app with `OLLAMA_MODEL`, e.g.
+`OLLAMA_MODEL=qwen2.5:7b-instruct-q8_0 python -m uvicorn api.main:app --port 8000`.
+Rerun it with `python -m bench.quantization capture|run|guard|report` (see the docstring in
+`bench/quantization.py`).
+
 ## Guardrails
 
 `guardrails/input_guard.py` checks each question (rules, topic gate, optional Llama Guard) and
@@ -75,6 +109,45 @@ Llama Guard is optional (Meta Llama 3.2 license, about 1.6 GB) and is switched o
 docker compose exec -T ollama ollama pull llama-guard3:1b
 python try_agent_db.py "Which apartments are within 500 m of Wien Westbahnhof?"
 ```
+
+## Output guard
+
+`guardrails/output_guard.py` checks each generated answer sentence by sentence before it is shown:
+
+1. **Citations:** a sentence must cite `[listing N]` or `[review N]` from the retrieved evidence. The citation
+   is resolved to that evidence (SQL row, price group, availability result or review text). Sentences without
+   a citation may only restate a notice such as "prices are snapshot base prices".
+2. **Faithfulness:** a multilingual NLI model
+   ([`MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7`](https://huggingface.co/MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7),
+   DeBERTa-v3 trained on MNLI/XNLI, about 1 GB, downloads on first use) must find the sentence entailed by
+   its cited evidence, so English answers can be checked against German reviews. Every number in the sentence
+   must also appear in that evidence (rounding allowed). Unsupported sentences are removed; if none remain,
+   the answer is withheld. The entailment threshold is `OUTPUT_NLI_THRESHOLD` (default `0.5`).
+3. **PII leak check:** the remaining text is masked again with Presidio; citations, listing IDs and landmark
+   names are left untouched.
+
+The chat shows the verified citations and the removed sentences with the reason for each.
+
+## Hybrid review search
+
+`retrieval/hybrid.py` searches masked reviews with two signals and merges them:
+
+1. **Dense:** bge-m3 query embedding → Qdrant nearest chunks (filtered by `listing_id` / `language`)
+2. **Lexical:** PostgreSQL full text (`to_tsvector('simple', ...)`, OR over query words, stopwords removed)
+3. **Fusion:** Reciprocal Rank Fusion, `score = Σ 1 / (60 + rank)`, keyed by `review_id`
+4. **Hydration:** rows are loaded from PostgreSQL, which also applies the date window
+5. **Rerank:** `BAAI/bge-reranker-v2-m3` cross-encoder on the top 30 (about 2.3 GB, downloads on first use)
+
+Every row keeps `review_id`, `listing_id` and `chunk_id` for citations. If Qdrant or the reranker
+is down, the search falls back to the remaining signals and says so in `notices`.
+
+```bash
+python try_hybrid.py "quiet at night"                    # search only, no LLM
+python try_hybrid.py "sehr sauber" --listing-ids 123 456 --no-rerank
+HYBRID=1 python try_agent_db.py                           # the LLM gets a hybrid_search_reviews tool
+```
+
+The collection is the newest complete manifest in `derived/vectors/` (override with `QDRANT_COLLECTION`).
 
 ## Database access (HeidiSQL or similar)
 

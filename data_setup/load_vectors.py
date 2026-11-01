@@ -93,6 +93,12 @@ class Masker:
         for name in sorted({clean_text(n) for n in names if n}, key=len, reverse=True):
             if name:
                 text = re.sub(r"(?<!\w)" + re.escape(name) + r"(?!\w)", "<PERSON_0>", text, flags=re.I)
+        for index, (start, end, kind) in reversed(list(enumerate(self.find(text), 1))):
+            text = text[:start] + f"<{kind}_{index}>" + text[end:]
+        return text
+
+    def find(self, text):
+        """Sorted, merged (start, end, entity_type) spans of names, phones and emails in text."""
         spans = []
         for language in ("en", "de"):
             spans.extend((r.start, r.end, r.entity_type) for r in self.analyzer.analyze(
@@ -107,9 +113,7 @@ class Masker:
                 merged[-1] = (old_start, max(end, old_end), old_kind)
             else:
                 merged.append((start, end, kind))
-        for index, (start, end, kind) in reversed(list(enumerate(merged, 1))):
-            text = text[:start] + f"<{kind}_{index}>" + text[end:]
-        return text
+        return merged
 
 
 def chunks(text, tokenizer, size, overlap):
