@@ -1,0 +1,458 @@
+{
+ "question": "How does the average price of superhost listings in Leopoldstadt compare to other hosts, and what do guests praise about superhosts?",
+ "sql_evidence": [
+  {
+   "tool": "compare_host_prices",
+   "notices": [
+    "Prices are snapshot base prices, not date-specific quotes; no currency conversion is performed."
+   ],
+   "district": "Leopoldstadt",
+   "groups": [
+    {
+     "host_is_superhost": true,
+     "listing_count": 327,
+     "priced_listing_count": 297,
+     "missing_price_count": 30,
+     "average_base_price": "166.0426599326599327",
+     "listing_ids": [
+      173375,
+      251790,
+      271754,
+      933256,
+      1545792,
+      1640285,
+      1713050,
+      1976273,
+      2165047,
+      2353681,
+      2965457,
+      3876901,
+      3976317,
+      4508368,
+      4678911,
+      4752559,
+      5169106,
+      5779942,
+      5780355,
+      5891502
+     ]
+    },
+    {
+     "host_is_superhost": false,
+     "listing_count": 1123,
+     "priced_listing_count": 806,
+     "missing_price_count": 317,
+     "average_base_price": "149.0427915632754342",
+     "listing_ids": [
+      38768,
+      51287,
+      229535,
+      234613,
+      263788,
+      264707,
+      293442,
+      333486,
+      708972,
+      846107,
+      949820,
+      1102740,
+      1102842,
+      1207680,
+      1458220,
+      1563521,
+      1596820,
+      1940757,
+      1981159,
+      2031034
+     ]
+    }
+   ]
+  }
+ ],
+ "review_evidence": [
+  {
+   "scope": "Superhost listings",
+   "review_id": 1293419081885590125,
+   "listing_id": 1713050,
+   "review_date": "2024-11-19",
+   "language": "en",
+   "text": "If you come to visit Vienna... you Have to stay at <PERSON_0>’s AirBnb. We have stayed at over 150 AirBnb since 2013. This one stands at the top in regards to interior decor and Kind hospitality!! The location is the Best- in Leopoldstadt... so close to center of Vienna ( we walked there every day-) and so peaceful nights rest. We definitely will return!! Grocery stores all within 3-7 minutes away by foot... galore of bakeries and ramen joints along with local fare!!! Highly recommend",
+   "score": 0.026488
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1398431879151023562,
+   "listing_id": 933256,
+   "review_date": "2025-04-13",
+   "language": "en",
+   "text": "I've used airbnb pretty extensively for years now and I have scarcely encountered a more proactively helpful host. They, unprompted, told us about not only all the fun things to do, go see, and eat in their surrounding area but gave detailed, step-by-step instruction for exactly how to get to their place from any number of starting locations. I can't praise enough how responsive and helpful they were. That all being said, the place itself was great too with an absolutely unbeatable location especially for the price. We had zero problems going and seeing everything that was on our list and if you're nervous about learning the Vienna public transport system (don't be, it's super easy) the hosts will help you! I will say, the stairs to the loft portion where the bedroom is are a little steep and slippery, so if you're not a stairs-person that might be something to keep in mind. But otherwise do not hesitate, it was a wonderful stay.",
+   "score": 0.00053
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1736211443163823923,
+   "listing_id": 1501653321168473857,
+   "review_date": "2026-07-23",
+   "language": "en",
+   "text": "<PERSON_0> is a thoughtful and caring host. He enhances the stay with an excellent guide full of recommendations and local tips to help guests find their way around the city and feel at home. It's clear that he put a great deal of care and passion into creating it. The room is comfortable and simple, yet it has everything you need for a short to medium stay, as does the rest of the apartment. The price is in line with the city's average and more than reasonable considering the location. From what little I had the chance to explore, the neighborhood seemed very charming and vibrant",
+   "score": 0.000445
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1570267539660633514,
+   "listing_id": 48135234,
+   "review_date": "2025-12-06",
+   "language": "en",
+   "text": "<PERSON_0> & Sebastian's place is overall a very nice stay. Responsive hosts that helped us get what we needed. Accessibility: 5-7 min walk from the closest train station with approx 60 steps to get to the place. not recommended for those with limited physical mobility. shower stall is elevated by a foot. Area: quiet+safe. a couple restaurants + McD not too far away. approx 15 min train ride to get to main tourist areas. pretty easily accessible from Vienna Central Station. Place itself: appreciated the washer. bedroom was a tad small, and the bed was a double size, not American queen so a tad tight for 2 people. washroom was a bit outdated. I did not smell any sewer smell like some of the other reviews, but the toilet design was weird so if you use it, the smell would waft into the entire bathroom. thankfully they provide airfreshener living room was nicely decorated and spacious. we did notice that it had a stale cigarette smell but it didn't bother us. good stay for the price!",
+   "score": 0.00022
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1391270266087080967,
+   "listing_id": 933256,
+   "review_date": "2025-04-03",
+   "language": "it",
+   "text": "<PERSON_1>, in ordine, gli host <PERSON_2>, gentili, proattivi nell'assistere il cliente e chiari nelle istruzioni. L'alloggio è abbastanza spazioso e si trova in una posizione ideale (10 min a piedi da Stephansplatz). Unici punti deboli purtroppo sono il bagno e il lavabo un pochino <PERSON_3> per accedere al secondo piano vanno salite e scese con un po' di attenzione. <PERSON_4> apparte questi dettagli il soggiorno è stata <PERSON_5> positiva.",
+   "score": 0.000204
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1576079406400950149,
+   "listing_id": 1540712364909131025,
+   "review_date": "2025-12-14",
+   "language": "en",
+   "text": "I was so lucky <PERSON_0> gave me the priority to book the place since I asked her first. It’s the weekend and Vienna is packed with tourists and everywhere was fully booked. Some other houses were the same price or more expensive & didn’t look good so I went with <PERSON_0>’s apartment. It’s 20’ away from Stephanplatz and is next to the metro so that’s great! The apartment simply wonderful. Our jaws dropped at the size, the thoughtful design, the cleanliness, the amenities etc. The entire building is brand new and the place is barely lived in. The kitchen was so well designed with top brands. Love having 2 toilets, it was such a much appreciated change from my previous stay where we shared 1 toilet among 6 ppl😅 And <PERSON_0> as a person is simply phenomenal. <PERSON_1> was so so accommodating & arranged check in that suited my schedule; was so responsive despite caring for her baby; just very nice interactions with her overall. We treated the place as our own and I hope she can see how much we loved it",
+   "score": 0.000199
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1754232990345547903,
+   "listing_id": 48135234,
+   "review_date": "2026-08-17",
+   "language": "en",
+   "text": "Good stay for the price and location. I loved the self check in process. The hosts were very nice. We had to print our train tickets and the host was able to do that for us without any issues. We ran out of toilet paper in the last few days and the hosts were able to provide more without any issues. We were also able to leave our luggages and bags at the apartment after we checked out so that was excellent! Please note that the bedroom and the bathroom are very small and cramped. My husband and I bumped ourselves on the bed, the shower, and the sinks frequently throughout the stay. The bedroom and bathroom felt more like a one-person apartment than two. I do wish there were more laundry pods (and toilet paper). As with most European apartments, there is no AC and to get into the unit, there are two flights of stairs with no elevators. Pack what you can carry!",
+   "score": 0.00018
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1422359385384381341,
+   "listing_id": 933256,
+   "review_date": "2025-05-16",
+   "language": "en",
+   "text": "What a great place to stay. It was so convenient to get to so many sights & attractions, which was the main reason for our stay and it was literally just minutes walk to shops and other facilities. The accommodation was enough for my sister & me, as the downstairs TV room easily converted into an additional bedroom, besides which, who wants to watch TV when you have such a beautiful city to enjoy?! The facilities at the apartment were all we needed and I am sure that had anything gone wrong (which It didn't) then the hosts Motti & Annemarie would have sorted, as they great at keeping in contact while we were there.",
+   "score": 0.000157
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1325325284749621930,
+   "listing_id": 12482390,
+   "review_date": "2025-01-02",
+   "language": "en",
+   "text": "It was the perfect location and was walkable to everything we wanted to do! When we did take public transportation it was extremely easy to find and walk to. We loved the detailed recommendations especially the instructions they gave us on how to take the bus from the airport to the Airbnb which we used. The hosts were some of the best we’ve stayed with because of their quick response time, friendliness, recommendations, and flexibility. Their rules were easy to follow and I would recommend this place to anyone who is looking to visit Vienna!",
+   "score": 0.00015
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1432550056401413906,
+   "listing_id": 5891502,
+   "review_date": "2025-05-30",
+   "language": "en",
+   "text": "The first thing that my family said when we saw <PERSON_0>’s home was “Holy Smokes this is amazing!” The pictures just didn’t do it justice in how wonderful this place is. My family rented both apartments so we would have enough beds. They both were king and comfy in size. One side of the apartment had a large room with bed, eating area, small Kitchen, table and chairs. The other apartment had a large couch bed, small kitchen and patio area. <PERSON_1> bedrooms have their own bathroom. They were nice inside with rain forest showers. It was so big and roomy. It also had a washer and dryer. It was on the first floor, which was nice. <PERSON_2> was so clean and was decorated perfectly.<PERSON_0> was always available to answer questions. This place was surrounded by eating restaurants and coffee shops. We walked everywhere without uber except to airport and Schönbrunn Palace. We felt very safe. <PERSON_0> was always available to answer questions. I would highly recommend this Airbnb.",
+   "score": 0.00014
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1566634648822274901,
+   "listing_id": 777346050087846772,
+   "review_date": "2025-12-01",
+   "language": "en",
+   "text": "What Ive always loved about the Airbnb concept is the possibility of experiencing a gorgeous & unique place for a short period of time. Supersense no exception . To live in an apartment of such grandeur , exquisitely decorated, with quirky touches and fascinating artworks is just a dream. If you’re here looking to book, then do it. You won’t be disappointed. The apartment looks exactly as the photos, and is spotless clean. Access is via two doors into a communal entrance with a lift to all floors. Hosts gave easy instructions with <PERSON_1> station just 3 mins walk. It’s a locals neighbourhood ( which I prefer) and has lots of delicious bakery’s , cafes and bars. <PERSON_2> is approx 15 mins steady walk, and central Vienna about 25 mins pleasant walk. I would visit again , without a doubt. <PERSON_3> you for your hospitality . We had a wonderful time.",
+   "score": 0.000133
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1507976592970800851,
+   "listing_id": 271754,
+   "review_date": "2025-09-11",
+   "language": "en",
+   "text": "<PERSON_1> had great Airbnb experiences over the years, but <PERSON_0>'s place goes straight to the top of the list. <PERSON_0> always communicated promptly and in a very helpful and friendly manner, and it was great to meet her on check-in and again on departure. The apartment is exactly as described in the profile, and incredibly comfortable. I had everything that I could possibly have wanted for the five night stay while I attended a conference at ACV. I also loved the view, and the reliable lift meant not having to climb any stairs! In terms of location, the very good <PERSON_2> with fresh deli counter just metres away and the fact that the apartment is just across the road from Taborstrasse station giving instant access to the excellent U-bahn system made everything really easy for me and enabled me to make the most of my time in Vienna - balancing the significant demands of the conference with a desire to explore the magnificent city. Evening walks \"home\" from the city centre felt safe and relaxing.",
+   "score": 0.000127
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1292733972538609665,
+   "listing_id": 933256,
+   "review_date": "2024-11-18",
+   "language": "de",
+   "text": "Sehr <PERSON_1> im <PERSON_2>. Die Gastgeber sind sehr nett, wenn Probleme aufgetreten sind, waren sie sehr zuvorkommend und konnten schnell helfen. <PERSON_3> man nur weiter empfehlen, vor allem für den Preis.",
+   "score": 0.0001
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1637631932748446648,
+   "listing_id": 2965457,
+   "review_date": "2026-03-09",
+   "language": "en",
+   "text": "<PERSON_0> is an excellent host! Her house is cozy and warm, the room is big and full of light, and everything was clean and organised. I made a mistake about the time of my arrival and this was inconvenient for <PERSON_0>, but she was very patient and understanding. It was really nice talking to her :) I would definitely go back to her place whenever I'm in Vienna.",
+   "score": 8.3e-05
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1444823166529841036,
+   "listing_id": 2965457,
+   "review_date": "2025-06-16",
+   "language": "en",
+   "text": "<PERSON_0> is the most friendly and nicest host! She had a lot of great recommendations which I used for my trip! Her home is located very centrally, just a short walk or metro ride away from the city centre. Her house was very clean and comfortable. <PERSON_1>, <PERSON_2>, were absolute sweethearts and the cherry on top! Highly recommend <PERSON_0>’s home for your stay in Vienna.",
+   "score": 8.2e-05
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1570276908877182086,
+   "listing_id": 1545792,
+   "review_date": "2025-12-06",
+   "language": "en",
+   "text": "<PERSON_0> was a fantastic host and was so welcoming and helpful throughout my stay, offering recommendations and being so understanding. Her place is gorgeous, quiet and cosy, and her dogs <PERSON_1> and <PERSON_2> are the sweetest. Definitely recommend <PERSON_0>’s place for anyone visiting Vienna who wants a calm place to wind down at night!",
+   "score": 7.8e-05
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1324624502165709172,
+   "listing_id": 933256,
+   "review_date": "2025-01-01",
+   "language": "en",
+   "text": "<PERSON_1> were excellent hosts— what a charming place to stay in such a great location! Thank you both for being so wonderful :)!",
+   "score": 7.1e-05
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1386234101759883270,
+   "listing_id": 1640285,
+   "review_date": "2025-03-27",
+   "language": "en",
+   "text": "<PERSON_0> is a fantastic, friendly, and responsive host. My colleague and I were in Vienna for a week to attend a meeting and conference at the UN. Location wise, it's perfectly situated to get to where all the activities for the UN are and to also go into the centre where all the things you want to see are. Just a 2-minute walk to Prater-Messe and 10 minutes to Praterstern, where multiple transport lines connect. It’s exceptionally well-stocked with everything from cutlery to kitchen essentials like foil and wrap (for dealing with leftovers), plus plenty of towels and linens. We cooked several meals during our stay, and the nearby grocery store made it easy. <PERSON_0> also recommended two excellent restaurants—one of which we tried, and it was amazing. Highly recommend her place!",
+   "score": 6.5e-05
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1661599355457216501,
+   "listing_id": 1976273,
+   "review_date": "2026-04-11",
+   "language": "en",
+   "text": "<PERSON_1> was a great responsive host and thr location was fantastic for Vienna.",
+   "score": 5.5e-05
+  },
+  {
+   "scope": "Superhost listings",
+   "review_id": 1533321002499155491,
+   "listing_id": 38115317,
+   "review_date": "2025-10-16",
+   "language": "en",
+   "text": "This was not our favourite Airbnb experience. The apartment had potential because it’s big and nice and in a good location. However it had nothing on the walls which made it feel stark and cold. I do not generally complain but I feel I have to give an honest review. The biggest problem was that it lacked supplies that should have been provided. We arrived on a Sunday when stores are closed in Austria. We were told by the person who showed us in that all the coffee and laundry detergent had been used up by the previous person and because it was Sunday, he couldn’t get us any. How about stocking up on supplies?? There was nothing in the kitchen other than some salt and pepper. <PERSON_1>, while the bed was comfortable, the bedding was not. It’s definitely time to replace those old sheets and pillows. Otherwise this apartment was fine but with a little effort the owner could make it a lot more pleasant.",
+   "score": 3.7e-05
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1412303008067410537,
+   "listing_id": 678102180288253522,
+   "review_date": "2025-05-02",
+   "language": "en",
+   "text": "We enjoyed our time in beautiful Vienna and in your apartment. Leopoldstadt was a nice neigbourghood for our visit and it was easy to reach with public transportation from the airport. The city center was within walking distance, we also used the metro and trams to get to the city's attractions. The apartment was beautiful, functional and there was all what we needed for our stay. The terrace was also very nice. The apartment was very quiet and bright and the elevator was a great help. The check-in and check-out process was very easy. The host was approachable and friendly and the instructions for our journey were very clear, for example how to get to the apartment and how to use the equipment. <PERSON_1> you for you hospitality. We would definitely stay here again next time! Danke schön!",
+   "score": 0.05992
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1366655921669920958,
+   "listing_id": 1102842,
+   "review_date": "2025-02-28",
+   "language": "en",
+   "text": "Great staying in Vienna and a super host <PERSON_1>",
+   "score": 0.000416
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1470213653112069447,
+   "listing_id": 40700608,
+   "review_date": "2025-07-21",
+   "language": "en",
+   "text": "Our experience living here left very mixed feelings: on one hand dealing with Beata and her complicated system of management was extremely difficult and unpleasant, the apartment in and outside had not been deep cleaned, maintained or renovated probably ever, the furniture and utilitiy setup was super cheap and in bad condition, it was dark and moist in the apartment all the time and there was constant sewage smell in the inyard which made it really unpleasant to use most of the time. But on the other hand, the inyard and garden was absolutely gorgeous and peaceful, the neighbourhood amazing and lovely to live in, the on-site property manager <PERSON_1> very friendly and attentive of any needs and we kind of liked the hobbit vibes of the apartment. Overall we found this place to be just about OK to justify the price (if you compare to other offers in the area) but this place could really use more love. With upgrades and better hosting, this place could be an absolute gem.",
+   "score": 0.000388
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1395643603594706042,
+   "listing_id": 678102180288253522,
+   "review_date": "2025-04-09",
+   "language": "en",
+   "text": "I have been on Airbnb for 11 years. I have stayed in 18 different locations. I have never written a bad review till today. A. Good things Location is great Checkin/access was easy B. Bad things 1. Apartment did NOT match the pictures. The pictures provided on Airbnb are a dump of many different flats they have under management and which flat you get depends on availability NOT what you paid for. Host offered to refund within 24 hours but I was there already. I just wanted to enjoy my short vacation. 2. After leaving the flat relatively okay (do I have to do the dishes and clean the flat and throw the garbage?) host messaged me charging me 25euro? Am I supposed to prepare the flat for your next stay? This has never been the case in ALL my other stays. 3. Check in time 3pm and check out 10am. Although a bit extreme, It was OK. I will avoid this place and stay in the other options within the city for next time.",
+   "score": 0.000244
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1640534427279234912,
+   "listing_id": 234613,
+   "review_date": "2026-03-13",
+   "language": "en",
+   "text": "Great host, great price and fantastic location!",
+   "score": 0.000207
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1739672796343126993,
+   "listing_id": 1471699631759307547,
+   "review_date": "2026-07-28",
+   "language": "en",
+   "text": "I give this a high rating because of the price. It’s very fairly priced for the area. The complaints I have are : 1.) the bathrooms don’t have enough room to use the sinks, the sinks are so small and they put a huge soap dispenser right in the way of it, so I found that the other guests constantly make a mess in the bathrooms because of this. Everytime I wanted to use th bathrooms there was water all over the floors, and the sink counter because there isn’t enough room to properly use it. 2.) it’s extremely hot in the summer . Too hot to be comfortable. 3 .) they tell you a lot of rules but they don’t make sense, for example that you just label your food in the fridge. But there is nothing to label it with, not even a pen so I don’t know how they expect you to do anything to label it.",
+   "score": 0.000168
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1750617997802158563,
+   "listing_id": 1447169284149330658,
+   "review_date": "2026-08-12",
+   "language": "en",
+   "text": "The location was fairly good to get to the center since one of the hop and off stops is in <PERSON_1> . But our stay was not as expected the apartment says to have AC as one of amenities and when we arrived at the place there was a big Fan and a portable AC with no proper set up to expulse hot air which made it impossible to sleep . The Host message us one day before departure and gave us instructions to sleep with window open to get the hot air out through putting the duct of the AC which was not properly set up when we arrived . With the competitive price of the apartment compared to other hotels around the area they should make sure to have AC before including it and not having it later .Do not sell what you can't offer ! Photos were inaccurate . Carpet of apartment super dirty and bathroom as well . We were very disappointed although the host apologized for our experience .",
+   "score": 0.000168
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1571679971494400702,
+   "listing_id": 263788,
+   "review_date": "2025-12-08",
+   "language": "en",
+   "text": "We stayed in Vienna for three nights at <PERSON_0>’s place, and our experience couldn’t have been better. From the moment we arrived, <PERSON_0> took exceptional care of us. He made the check-in process effortless, and every time we reached out, he responded immediately. He is genuinely warm and thoughtful. It had been a long time since we felt this at home while traveling. We were completely at ease and truly comfortable throughout our stay. Even the pillows and blankets smelled freshly clean. When it comes to cleanliness, hygiene, comfort, and overall attention to detail, everything was a perfect 10/10. This is, without a doubt, one of the most peaceful, satisfying, and enjoyable Airbnb experiences I’ve ever had",
+   "score": 0.00012
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1676848693933420881,
+   "listing_id": 772575141939829857,
+   "review_date": "2026-05-02",
+   "language": "en",
+   "text": "The place is nice and location good. So why am I giving a harsh rank? Because received two different sets of instructions how to get in. One set was on Airbnb \"How do I get in\" section and it said to use a certain 4-digit number to open key box (the wrong number). The other set of instructions was emailed to me when I was already travelling w/o reliable access to internet and it gave the correct number. So I arrive 1am, tired, with crying kids and I am unable to get inside because the number I was given does not open the stupid key box. This was an infuriating situation. I almost smashed the box and prob got arrested. <PERSON_1> though all my messages again before doing so and found the alternative 4-digit number. Everything is less important in an accommodation than accessibility. The responsibility to communicate clearly rests 100% on the host in this situation and the traveller is an vulnerable position. So here is why I am ranking this otherwise fine place so low.",
+   "score": 0.000104
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1681171367881455509,
+   "listing_id": 263788,
+   "review_date": "2026-05-08",
+   "language": "en",
+   "text": "Nice host. Great place to stay.",
+   "score": 9.6e-05
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1724499766516077853,
+   "listing_id": 1436912569134323434,
+   "review_date": "2026-07-07",
+   "language": "en",
+   "text": "Absolutely amazing central location with public transport that is literally right outside the front door that takes you to all the major destinations including most of the train stations. The hotel had many amenities including a restaurant which I don't believe the hotel advertises enough!!!! I recommend you definitely check it out. however the one caveat I'd have is the price of the bottled water! out of curiosity I asked how much a cold bottle of water costs as I stayed on a day that was 30 degrees, the answer of €5.50 threw me back, especially because all the other locations of the social hub I have stayed at were half the price 🤯. apart from that minor detail, you could not ask for more from this hotel.",
+   "score": 8.8e-05
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1382512382609444290,
+   "listing_id": 1157835673358930221,
+   "review_date": "2025-03-22",
+   "language": "en",
+   "text": "A lively small flat, bedroom windows at the top should open - need air to sleep! Very barren (only 2 towels for 6 nights...), would be nice to have a coffee maker and some tea, coffee and oil left for the guests as other hosts do",
+   "score": 8.8e-05
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1411547110331873263,
+   "listing_id": 234613,
+   "review_date": "2025-05-01",
+   "language": "en",
+   "text": "This spot was the perfect place for Vienna, good price and great location. I liked that they provided fans as it was quite warm while we were there. Very clean space and the beds were comfy. Clear instructions and responsive host.",
+   "score": 8.5e-05
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1360043608612954376,
+   "listing_id": 293442,
+   "review_date": "2025-02-19",
+   "language": "en",
+   "text": "<PERSON_0> is an incredible host, very proactive and quick to respond. <PERSON_1> definitely recommend his places and would stay with him again if ever we are back in Vienna :)",
+   "score": 7.5e-05
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1478934444620133581,
+   "listing_id": 263788,
+   "review_date": "2025-08-02",
+   "language": "en",
+   "text": "Everything as described. <PERSON_0> is a great host. I loved the appartment. The location is ideal, close to the city centre with excellent transport links to explore Vienna but in a proper neighbourhood with its own vibe. The nearby <PERSON_1> is very beautiful.",
+   "score": 7.3e-05
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1265884726248051234,
+   "listing_id": 229535,
+   "review_date": "2024-10-12",
+   "language": "en",
+   "text": "Amazing hosts. Amazing place, comfortable beds. Can’t recommend higher!",
+   "score": 7.2e-05
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1457185300858362569,
+   "listing_id": 1056274253488502811,
+   "review_date": "2025-07-03",
+   "language": "en",
+   "text": "Good location. Close to U1. Quick communication. Clean. Spacious. Excellent sound proofing. Aircon a blessing in this heat. I would stay here again for sure! Areas of improvement: It would have been nice to have olive oil provided for cooking. Most Airbnb hosts provide that now. Nespresso machine - you get two free capsules. You open front door with your phone. Make sure you bring a power bank! Not sure what you do if your phone gets lost or stolen. There’s a pool on rooftop - but you can’t go in it. Only owners :(",
+   "score": 6.4e-05
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1325257674106758776,
+   "listing_id": 27666747,
+   "review_date": "2025-01-02",
+   "language": "en",
+   "text": "Host was nice but place was terrible. Had not been cleaned in forever. Not modern at all no amenities like tv, usb outlets and temporary lights installed in rooms. The bathroom actually and a temporary light socket with exposed wiring over the sink blocking the very little vanity mirror(code violation/electrical hazard). Bugs flying around and Cobb webs in almost every room. No closet or drawer space for your belongings other than the floor in front of the bed, the host did have a little 3 chest of drawer beside bed gol of trash and incidentals with a coffee stains and debris on the top of it, how modern is that? Place does have great potential it taken care of.",
+   "score": 6.3e-05
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1291995560243678690,
+   "listing_id": 234613,
+   "review_date": "2024-11-17",
+   "language": "en",
+   "text": "Stayed for a few days, and it was a great location at a good price for being in the city center. The only downside is that the walls are quite thin, so you can hear your neighbors showering or chatting. Other than that, it’s a solid option for a short stay-and the hosts are friendly!",
+   "score": 6.2e-05
+  },
+  {
+   "scope": "Other hosts",
+   "review_id": 1526023626509008666,
+   "listing_id": 234613,
+   "review_date": "2025-10-06",
+   "language": "en",
+   "text": "Amazing place! Everything is just as stated. Awesome hosts!",
+   "score": 5.5e-05
+  }
+ ],
+ "landmarks": [
+  "Wien Hauptbahnhof",
+  "Wien Westbahnhof",
+  "Wien Mitte",
+  "Praterstern",
+  "Franz-Josefs-Bahnhof",
+  "Stephansdom",
+  "Schloss Schönbrunn",
+  "Hofburg",
+  "Schloss Belvedere",
+  "Wiener Staatsoper",
+  "Rathaus",
+  "Parlament",
+  "Riesenrad",
+  "Naschmarkt",
+  "MuseumsQuartier",
+  "Kunsthistorisches Museum",
+  "Votivkirche",
+  "Hundertwasserhaus",
+  "Karlskirche",
+  "Albertina"
+ ],
+ "scenario": "B",
+ "original_question": "How does the average price of superhost listings in Leopoldstadt compare to other hosts, and what do guests praise about superhosts?"
+}

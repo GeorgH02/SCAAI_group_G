@@ -87,6 +87,17 @@ For an NVIDIA GPU, start Ollama with the override file instead:
 docker compose -f compose.yaml -f compose.gpu.yaml up -d ollama
 ```
 
+For an AMD integrated GPU (e.g. Radeon 780M) use `compose.vulkan.yaml` the same way.
+
+## Quantization benchmark
+
+`docs/benchmarks.md` compares the answer model at FP16, INT8 (Q8_0) and INT4 (Q4_K_M): time to first token,
+tokens/s, valid JSON and sentences verified by the output guard. On the Radeon 780M, INT8 was the best
+trade-off; select a model for the app with `OLLAMA_MODEL`, e.g.
+`OLLAMA_MODEL=qwen2.5:7b-instruct-q8_0 python -m uvicorn api.main:app --port 8000`.
+Rerun it with `python -m bench.quantization capture|run|guard|report` (see the docstring in
+`bench/quantization.py`).
+
 ## Guardrails
 
 `guardrails/input_guard.py` checks each question (rules, topic gate, optional Llama Guard) and
