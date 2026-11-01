@@ -346,7 +346,7 @@ def main():
     p = sub.add_parser("guard")
     p.add_argument("--results", type=Path, help="results file (default: newest)")
     p = sub.add_parser("report")
-    p.add_argument("--results", type=Path, nargs="+", help="results files, oldest first (default: newest)")
+    p.add_argument("--results", type=Path, nargs="+", help="results files, oldest first (default: all in derived/benchmarks)")
     args = parser.parse_args()
     if args.command == "capture":
         capture(args.scenarios)
@@ -355,7 +355,7 @@ def main():
     elif args.command == "guard":
         guard(args.results or latest_results()[-1])
     else:
-        report(args.results or latest_results()[-1:])
+        report(args.results or latest_results())  # every saved run, oldest first
 
 
 if __name__ == "__main__":
