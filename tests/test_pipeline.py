@@ -81,7 +81,9 @@ class AnswerGenerationTests(unittest.TestCase):
         result = pipeline.grounded_answer(model, 'quiet?', [], [], on_token=tokens.append)
         self.assertEqual(result['answer'], 'Listing 7 is "quiet" [review 9].')
         self.assertEqual(''.join(tokens), result['answer'])
-        self.assertEqual(model.bound['response_format']['json_schema']['schema']['additionalProperties'], False)
+        schema = model.bound['response_format']['json_schema']['schema']
+        self.assertEqual(schema['additionalProperties'], False)
+        self.assertEqual(schema['properties']['answer']['maxLength'], pipeline.ANSWER_MAX_CHARS)
         self.assertEqual(result['stats']['output_tokens'], len(range(0, len(text), 4)))
         self.assertIsNotNone(result['stats']['ttft_s'])
 

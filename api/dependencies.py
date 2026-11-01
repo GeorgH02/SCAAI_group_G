@@ -40,7 +40,8 @@ def get_workflow():
         landmarks = [
             row[0]
             for row in connection.execute(
-                "SELECT name FROM vienna_stay_assistant.landmarks"
+                "SELECT name FROM vienna_stay_assistant.landmarks "
+                "UNION SELECT neighbourhood FROM vienna_stay_assistant.neighbourhoods"  # public names, never PII
             )
         ]
 

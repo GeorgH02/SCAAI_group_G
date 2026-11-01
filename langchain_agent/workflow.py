@@ -56,7 +56,10 @@ def local_model(*, model='qwen2.5:7b', base_url='http://127.0.0.1:21434/v1', tim
     import httpx
 
     return ChatOpenAI(model=model, base_url=base_url, api_key='local-only',
-                      temperature=0, timeout=timeout, max_retries=0, max_tokens=1024,
+                      temperature=0, timeout=timeout, max_retries=0,
+                      # LangChain sends max_tokens as max_completion_tokens, which Ollama ignores
+                      # (generation then runs until the timeout); send the field Ollama reads.
+                      extra_body={'max_tokens': 1024},
                       http_socket_options=(),
                       http_client=httpx.Client(trust_env=False, follow_redirects=False),
                       http_async_client=httpx.AsyncClient(trust_env=False, follow_redirects=False))
