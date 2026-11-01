@@ -76,12 +76,13 @@ HYBRID_DESCRIPTION = (
 DEFINITIONS = (
     ('search_listings', ListingSearch,
      'Filter Vienna snapshot listings by district (its name such as "Alsergrund", or its number 1-23 such as 9), '
-     'exact room/amenities, minimum capacity, '
+     'exact room type, amenities (words that must appear in an amenity name, e.g. ["balcony", "washer"]), minimum capacity, '
      'room_type must be exactly one of: Entire home/apt, Private room, Shared room, Hotel room; omit it unless asked. '
      'bedrooms is an exact bedroom-count filter. Use it when the user requests a bedroom count. '
      'inclusive base prices (decimal strings), superhost status or IDs. near_landmark (a curated station or '
      'sight such as "Wien Westbahnhof"; unknown names return the known list) with radius_m keeps listings within that '
-     'distance, nearest first. max_night_noise_db keeps listings whose worst Lnight band starts below that dB. '
+     'distance, nearest first. max_night_noise_db keeps listings whose worst Lnight band starts below that dB '
+     '(the map starts at 45; use about 55 for "quiet"); if none qualify, the quietest are returned with a notice. '
      'Returns paginated evidence.'),
     ('check_availability', Availability,
      'Requires explicit check_in and check_out; ask for the checkout date if it is missing, never assume a stay length. '

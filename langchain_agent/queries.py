@@ -17,6 +17,11 @@ NOISE_NOTICE = ('Night noise is the worst Lnight road/rail band within 150 m of 
                 'map); the filter compares the start of the band (e.g. 50-54 starts at 50). The map starts at 45 dB, so '
                 'listings without a band are quieter than 45 dB at night and pass the filter (counted in '
                 'quieter_than_mapped).')
+NOISE_RELAXED_NOTICE = ('No matching listing has night noise below {limit} dB, so the quietest matching listings '
+                        'are returned instead, quietest first; say that they do not meet the requested level.')
+# Start of the worst road/rail band in dB; NULL when the listing has neither (quieter than the map's 45 dB).
+NOISE_FLOOR_SQL = ("GREATEST((substring(l.lnight_road_band FROM '[0-9]+'))::integer, "
+                   "(substring(l.lnight_rail_band FROM '[0-9]+'))::integer)")
 NOISE_MISSING_NOTICE = ('No night-noise data is loaded, so the noise filter was not applied; '
                         'use review search to judge how quiet a listing is.')
 ORDINALS = {word: number for number, word in enumerate((
@@ -210,8 +215,10 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
     if amenities is not None:
         if not isinstance(amenities, (list, tuple)) or len(amenities) > 50:
             raise ValueError('amenities must be a list of at most 50 values')
-        clauses.append('l.amenities @> %s::text[]')
-        params.append([_text(v, 'amenity') for v in amenities])
+        for amenity in amenities:  # each word must appear in some amenity name, ignoring case
+            term = re.sub(r'([\\%_])', r'\\\1', _text(amenity, 'amenity').strip())
+            clauses.append("EXISTS (SELECT 1 FROM unnest(l.amenities) a WHERE a ILIKE '%%' || %s || '%%')")
+            params.append(term)
     base = (' FROM vienna_stay_assistant.listings l JOIN vienna_stay_assistant.hosts h USING (host_id)'
             + (' JOIN vienna_stay_assistant.landmarks g ON lower(g.name) = lower(%s)' if landmark is not None else '')
             + ' WHERE ' + (' AND '.join(clauses) if clauses else 'TRUE'))
@@ -225,8 +232,7 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
     noise_clause = len(prices)
     if noise_limit is not None:
         # GREATEST ignores NULLs, so it is NULL only when both bands are missing: below the 45 dB start of the map.
-        prices.append("coalesce(GREATEST((substring(l.lnight_road_band FROM '[0-9]+'))::integer, "
-                      "(substring(l.lnight_rail_band FROM '[0-9]+'))::integer), 0) < %s")
+        prices.append('coalesce(' + NOISE_FLOOR_SQL + ', 0) < %s')
         price_params.append(noise_limit)
     columns = LISTING_COLUMNS + ', l.lnight_road_band, l.lnight_rail_band'
     order = ' ORDER BY l.listing_id'
@@ -259,7 +265,20 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
         unbanded = s.fetch('SELECT count(*) AS count' + base + ' AND l.lnight_road_band IS NULL '
                                 'AND l.lnight_rail_band IS NULL', params)[0]['count'] if noise_limit is not None else 0
         sql = 'SELECT ' + columns + base + ((' AND ' + ' AND '.join(prices)) if prices else '')
-        return {**s.page(sql + order, (*params, *price_params), limit, offset), **extra,
+        page = s.page(sql + order, (*params, *price_params), limit, offset)
+        relaxed = False
+        if noise_limit is not None and page['total_matches'] == 0:
+            # Nothing is below the requested level: return the quietest matching listings instead.
+            others = [p for i, p in enumerate(prices) if i != noise_clause]
+            other_params = [p for i, p in enumerate(price_params) if i != noise_clause]
+            quietest = (' ORDER BY ' + NOISE_FLOOR_SQL + ' NULLS FIRST, '
+                        + order.removeprefix(' ORDER BY '))
+            page = s.page('SELECT ' + columns + base + ((' AND ' + ' AND '.join(others)) if others else '')
+                          + quietest, (*params, *other_params), limit, offset)
+            relaxed = page['total_matches'] > 0
+            if relaxed:
+                notices.append(NOISE_RELAXED_NOTICE.format(limit=noise_limit))
+        return {**page, **extra, 'noise_filter_relaxed': relaxed,
                 'missing_price_exclusions': missing_price, 'quieter_than_mapped': unbanded}
     if noise_limit is not None:
         notices.append(NOISE_NOTICE)

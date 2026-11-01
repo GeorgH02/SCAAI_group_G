@@ -244,6 +244,25 @@ class QueryIntegrationTests(unittest.TestCase):
         self.assertIn(queries.NOISE_MISSING_NOTICE, result['notices'])
         self.assertNotIn(queries.NOISE_NOTICE, result['notices'])
 
+    def test_amenity_words_match_case_insensitively_inside_names(self):
+        self.assertEqual(queries.search_listings(self.connection, amenities=['wifi', 'KITCH'])['total_matches'], 5)
+        self.assertEqual(queries.search_listings(self.connection, amenities=['wifi', 'pool'])['total_matches'], 0)
+        self.assertEqual(queries.search_listings(self.connection, amenities=['%'])['total_matches'], 0)
+
+    def test_too_strict_noise_limit_returns_the_quietest_listings_with_a_notice(self):
+        # Every listing in district 7 is mapped, so nothing is below 45 dB; the quietest come first instead.
+        self.connection.execute("UPDATE vienna_stay_assistant.listings SET lnight_road_band = '55-59' "
+                                "WHERE lnight_road_band IS NULL AND lnight_rail_band IS NULL")
+        try:
+            result = queries.search_listings(self.connection, max_night_noise_db=45)
+        finally:
+            self.connection.execute("UPDATE vienna_stay_assistant.listings SET lnight_road_band = NULL "
+                                    "WHERE listing_id IN (4, 5)")
+        self.assertTrue(result['noise_filter_relaxed'])
+        self.assertEqual([r['listing_id'] for r in result['rows']][:2], [1, 4])
+        self.assertTrue(any('below 45 dB' in n for n in result['notices']))
+        self.assertFalse(queries.search_listings(self.connection, max_night_noise_db=55)['noise_filter_relaxed'])
+
     def test_aggregation_is_listing_weighted_and_fully_citable(self):
         result = queries.compare_host_prices(self.connection, 'Neubau')
         yes, no, unknown = result['groups']

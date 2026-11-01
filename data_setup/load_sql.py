@@ -95,6 +95,37 @@ def masked(value, names, masker):
     return masker.mask(text, names) if text else None
 
 
+def amenity_list(value, names):
+    """Amenities as stored: Airbnb's fixed vocabulary, so only the host's own name is masked.
+
+    Statistical PII detection turned common amenities into <PERSON_n> ("Patio or balcony",
+    "Wifi"), so it is not used here.
+    """
+    amenities = json.loads(value) if value else None
+    if amenities is None:
+        return None
+    if not isinstance(amenities, list) or any(not isinstance(a, str) for a in amenities):
+        raise ValueError('Amenities must be an array of strings')
+    result = []
+    for amenity in amenities:
+        text = clean_text(amenity)
+        for name in sorted({clean_text(n) for n in names if n and clean_text(n)}, key=len, reverse=True):
+            text = re.sub(r'(?<!\w)' + re.escape(name) + r'(?!\w)', '<PERSON_0>', text, flags=re.I)
+        result.append(text)
+    return result
+
+
+def repair_amenities(conn, data_dir):
+    """Rewrite listings.amenities from listings.csv without statistical masking; returns rows updated."""
+    updated = 0
+    with conn.transaction(), conn.cursor() as cur:
+        for row in rows(data_dir / 'listings.csv', ('id', 'host_name', 'amenities')):
+            cur.execute('UPDATE vienna_stay_assistant.listings SET amenities = %s WHERE listing_id = %s',
+                        (amenity_list(row['amenities'], [row['host_name']]), source_id(row['id'])))
+            updated += cur.rowcount
+    return updated
+
+
 def listing_sources(data_dir, limit, stats):
     selected, all_ids = {}, set()
     required = ('id', 'host_id', 'host_name', 'description', 'neighbourhood_cleansed',
@@ -170,11 +201,7 @@ def listing_records(listings, masker, stats):
         names = [row['host_name']]
         price = number(row['price'], price=True)
         stats['listings_missing_price'] += price is None
-        amenities = json.loads(row['amenities']) if row['amenities'] else None
-        if amenities is not None and (not isinstance(amenities, list) or any(not isinstance(a, str) for a in amenities)):
-            raise ValueError('Amenities must be an array of strings')
-        # Amenities are free text too; protect unusual custom entries.
-        amenities = [masked(a, names, masker) or '' for a in amenities] if amenities is not None else None
+        amenities = amenity_list(row['amenities'], names)
         lat = Decimal(row['latitude']) if row['latitude'] else None
         lon = Decimal(row['longitude']) if row['longitude'] else None
         if any(v is not None and not v.is_finite() for v in (lat, lon)):
@@ -332,6 +359,8 @@ def parse_args(argv=None):
     parser.add_argument('--min-review-chars', type=int, default=30)
     parser.add_argument('--limit', type=int, help='Sample: first N listings and at most N candidate reviews; all their calendar rows')
     parser.add_argument('--replace', action='store_true', help='Atomically replace existing accommodation tables; keeps run history')
+    parser.add_argument('--amenities-only', action='store_true',
+                        help='Only rewrite listings.amenities from listings.csv (repairs amenities masked by older loads)')
     args = parser.parse_args(argv)
     if args.min_review_chars < 1 or (args.limit is not None and args.limit < 1):
         parser.error('Minimum length and limit must be positive')
@@ -360,6 +389,9 @@ def main(argv=None):
         ('user', 'PGUSER', 'postgres'), ('password', 'PGPASSWORD', 'postgres'))}
     # autocommit keeps connectivity checks outside the atomic ingestion transaction.
     with psycopg.connect(dsn, **defaults, connect_timeout=10, autocommit=True) as conn:
+        if args.amenities_only:
+            print(f'Amenities rewritten for {repair_amenities(conn, args.data_dir)} listings.', flush=True)
+            return
         print('Connected. Loading German/English privacy models (no embedding model)...', flush=True)
         report = ingest(conn, args, Masker(), language)
     output = ROOT / 'derived' / 'sql'
