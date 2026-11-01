@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from api.dependencies import get_workflow
+from api.public_evidence import public_evidence
 
 
 app = FastAPI(
@@ -41,6 +42,7 @@ def gather_evidence(
 ):
     try:
         result = workflow.invoke(request.question)
+        result["results"] = public_evidence(result["results"])
         return EvidenceResponse.model_validate(result)
     except Exception:
         raise HTTPException(
