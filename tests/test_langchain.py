@@ -127,7 +127,19 @@ class LangChainTests(unittest.TestCase):
         context = json.loads(self.model.invoke.call_args.args[0][-1].content)
         self.assertEqual(context['groups'][0], {'average_base_price': '166.4712', 'listing_ids': [1545792]})
         self.assertEqual(context['rows'][0], {'listing_id': 1545792, 'name': '<MASKED>', 'date': '2026-05-01'})
-        self.assertEqual(context['evidence'], artifact['evidence'])
+        self.assertNotIn('evidence', context)  # SQL stays in the application result only
+
+    def test_bulky_fields_are_left_out_of_the_model_copy_only(self):
+        artifact = {'rows': [{'listing_id': 1, 'amenities': ['Wifi'] * 50, 'load_id': 'x', 'price': '99.00'}],
+                    'results': [{'listing_id': 1, 'status': 'available', 'calendar_evidence': [{'date': 'd'}] * 3}],
+                    'provenance': [{'scope': 'full'}]}
+        flow = self.workflow([self.call(), AIMessage('')])
+        with patch('langchain_agent.queries.search_listings', return_value=artifact):
+            result = flow.invoke('apartments')
+        self.assertEqual(result['results'][0], artifact)
+        context = json.loads(self.model.invoke.call_args.args[0][-1].content)
+        self.assertEqual(context, {'rows': [{'listing_id': 1, 'price': '99.00'}],
+                                   'results': [{'listing_id': 1, 'status': 'available'}]})
 
     def test_rejected_argument_values_are_returned_to_the_model(self):
         flow = self.workflow([self.call('search_listings', {'district': '24'}), AIMessage('')])

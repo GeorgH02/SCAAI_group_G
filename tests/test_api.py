@@ -176,12 +176,18 @@ class AnswerApiTests(unittest.TestCase):
         self.assertNotIn("score", body["reviews"][0])
         self.assertNotIn("secret", str(body["evidence"]))
         self.assertNotIn("SELECT", str(body["evidence"]))
+        self.assertEqual(body["notices"], [])
 
     def test_blocked_and_clarification_results_have_a_message(self):
-        response, _ = self.answer({"status": "blocked", "results": [], "message": "Off topic."})
-        self.assertEqual(response.json()["status"], "blocked")
-        self.assertEqual(response.json()["message"], "Off topic.")
-        self.assertIsNone(response.json()["answer"])
+        response, _ = self.answer({"status": "blocked", "results": [], "message": "Off topic.",
+                                   "category": "off_topic", "reason": "not about Vienna accommodation",
+                                   "masked_question": "Write code for <PERSON_1>"})
+        body = response.json()
+        self.assertEqual(body["status"], "blocked")
+        self.assertEqual(body["message"], "Off topic.")
+        self.assertEqual((body["guard_category"], body["guard_reason"]), ("off_topic", "not about Vienna accommodation"))
+        self.assertEqual(body["masked_question"], "Write code for <PERSON_1>")
+        self.assertIsNone(body["answer"])
         response, _ = self.answer({"clarification": "Which year?"})
         self.assertEqual(response.json()["status"], "clarification_needed")
 

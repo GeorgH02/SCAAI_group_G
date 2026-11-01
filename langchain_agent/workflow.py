@@ -14,8 +14,13 @@ from pydantic import ValidationError
 from langchain_agent.tools import build_tools
 
 
-# Written by the application (SQL text, parameters already masked, provenance), not by hosts or guests.
-TRUSTED_EVIDENCE_KEYS = frozenset({'evidence', 'provenance'})
+# Kept in the application result for citations but left out of the model's copy: SQL text, provenance,
+# per-night calendar rows, full amenity lists and load bookkeeping. Without this a listing search plus an
+# availability check is about 17,000 tokens, more than the model context, and minutes of CPU prompt time.
+MODEL_OMIT_KEYS = frozenset({
+    'evidence', 'provenance', 'calendar_evidence', 'amenities', 'load_id', 'host_load_id', 'listing_load_id',
+    'calendar_load_id', 'listing_load_ids', 'host_load_ids', 'last_scraped', 'source_file',
+})
 MAX_MODEL_IDS = 20
 # Plain numbers, ISO dates/timestamps and UUIDs carry no personal data.
 NOT_TEXT = re.compile(r'-?\d+(?:\.\d+)?|\d{4}-\d{2}-\d{2}(?:[T ][\d:.+\-Z]+)?|[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}')
@@ -179,13 +184,13 @@ class EvidenceWorkflow:
         return {'status': 'budget_exhausted', 'results': results}
 
     def _mask_evidence(self, value):
-        """Mask each text value of a tool result; numbers, IDs, dates and the application's SQL stay intact.
+        """The model's copy of a tool result: text values masked, numbers/IDs/dates intact, bulky keys left out.
 
         Masking the serialized JSON as one string let PII detection turn listing IDs and prices into
         <PHONE_NUMBER_n> and break the JSON.
         """
         if isinstance(value, dict):
-            return {k: v if k in TRUSTED_EVIDENCE_KEYS else self._mask_evidence(v) for k, v in value.items()}
+            return {k: self._mask_evidence(v) for k, v in value.items() if k not in MODEL_OMIT_KEYS}
         if isinstance(value, list):
             if len(value) > MAX_MODEL_IDS and all(type(v) is int for v in value):
                 # Long ID lists (e.g. every listing in a price group) overflow the model context;

@@ -65,7 +65,11 @@ class AnswerResponse(BaseModel):
     removed: list[RemovedStatement] = []
     reviews: list[ReviewEvidence] = []
     evidence: list[Any] = []
+    notices: list[str] = []
     message: str | None = None
+    guard_category: str | None = Field(default=None, description="Input guard that blocked the question")
+    guard_reason: str | None = None
+    masked_question: str | None = Field(default=None, description="The question as the model saw it")
 
 
 
@@ -105,11 +109,19 @@ def answer_question(request: AnswerRequest, run_question=Depends(get_answerer)):
         raise HTTPException(status_code=502, detail="Answer pipeline failed") from None
     if "clarification" in result:
         return AnswerResponse(status="clarification_needed", message=result["clarification"])
-    evidence = public_evidence(result.get("results", []))
+    results = result.get("results", [])
+    common = {
+        "evidence": public_evidence(results),
+        "notices": list(dict.fromkeys(
+            n for item in results if isinstance(item, dict) for n in item.get("notices", []) if isinstance(n, str))),
+        "masked_question": result.get("masked_question"),
+    }
     if "answer" not in result:
-        return AnswerResponse(status=result["status"], message=result.get("message"), evidence=evidence)
+        return AnswerResponse(status=result["status"], message=result.get("message"),
+                              guard_category=result.get("category"), guard_reason=result.get("reason"), **common)
     answer = result["answer"]
     return AnswerResponse(
+        **common,
         status=result["status"],
         answer=answer["answer"],
         verified=answer["verified"],
@@ -117,5 +129,4 @@ def answer_question(request: AnswerRequest, run_question=Depends(get_answerer)):
         citations=answer["citations"],
         removed=answer["removed"],
         reviews=[{key: review.get(key) for key in ReviewEvidence.model_fields} for review in result["reviews"]],
-        evidence=evidence,
     )

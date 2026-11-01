@@ -305,6 +305,7 @@ def run_question(question, new_years_eve_year):
         model_question = question
         if has_new_years_eve and not has_explicit_year:
             model_question += f" Use New Year's Eve on December 31, {new_years_eve_year}."
+        masked_question = mask(clean_text(model_question))  # what the model sees; shown in the UI
         outcome = workflow.invoke(model_question)
         if outcome["status"] in ("budget_exhausted", "context_limit") and outcome["results"]:
             # A search limit was reached after some evidence was found: answer from what was collected.
@@ -336,7 +337,7 @@ def run_question(question, new_years_eve_year):
                     outcome["results"].append(get_host_listings(connection, host_id, limit=100))
 
     if outcome["status"] != "evidence_ready":
-        result = {"status": outcome["status"], "results": outcome["results"]}
+        result = {"status": outcome["status"], "results": outcome["results"], "masked_question": masked_question}
         if outcome["status"] == "blocked" and guard_decisions:
             decision = guard_decisions[-1]
             result["message"] = decision.message
@@ -385,6 +386,7 @@ def run_question(question, new_years_eve_year):
             "status": "no_evidence",
             "results": outcome["results"],
             "reviews": [],
+            "masked_question": masked_question,
         }
     answer = grounded_answer(model, clean_question, safe_sql_evidence, review_evidence)
     check = output_guard.check(
@@ -406,4 +408,5 @@ def run_question(question, new_years_eve_year):
         "answer": answer,
         "reviews": review_evidence,
         "results": outcome["results"],
+        "masked_question": masked_question,
     }
