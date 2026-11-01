@@ -203,23 +203,24 @@ class QueryIntegrationTests(unittest.TestCase):
             self.assertEqual(len(result['known_landmarks']), 20)
         self.assertEqual(queries.search_listings(self.connection)['total_matches'], 5)
 
-    def test_night_noise_filter_uses_worst_band_and_reports_exclusions(self):
-        # Bands: 1 -> road 50-54; 2 -> road 50-54 but rail 60-64; 3 -> road 70-74; 4 and 5 have none.
+    def test_night_noise_filter_uses_worst_band_and_counts_unmapped_as_quiet(self):
+        # Bands: 1 -> road 50-54; 2 -> road 50-54 but rail 60-64; 3 -> road 70-74; 4 and 5 have none (below 45 dB).
         quiet = queries.search_listings(self.connection, max_night_noise_db=55)
-        self.assertEqual([r['listing_id'] for r in quiet['rows']], [1])
-        self.assertEqual(quiet['missing_noise_exclusions'], 2)
+        self.assertEqual([r['listing_id'] for r in quiet['rows']], [1, 4, 5])
+        self.assertEqual(quiet['quieter_than_mapped'], 2)
         self.assertIn(queries.NOISE_NOTICE, quiet['notices'])
         self.assertEqual(quiet['rows'][0]['lnight_road_band'], '50-54')
         edge = queries.search_listings(self.connection, max_night_noise_db=60)  # '60-64' starts AT 60, not below it
-        self.assertEqual([r['listing_id'] for r in edge['rows']], [1])
+        self.assertEqual([r['listing_id'] for r in edge['rows']], [1, 4, 5])
         mid = queries.search_listings(self.connection, max_night_noise_db=65)  # rail band of listing 2 now passes
-        self.assertEqual([r['listing_id'] for r in mid['rows']], [1, 2])
-        self.assertEqual(queries.search_listings(self.connection, max_night_noise_db=30)['rows'], [])
+        self.assertEqual([r['listing_id'] for r in mid['rows']], [1, 2, 4, 5])
+        silent = queries.search_listings(self.connection, max_night_noise_db=40)  # only listings below the map
+        self.assertEqual([r['listing_id'] for r in silent['rows']], [4, 5])
         combined = queries.search_listings(self.connection, near_landmark='Wien Westbahnhof', radius_m=500,
                                            max_night_noise_db=55)
-        self.assertEqual([r['listing_id'] for r in combined['rows']], [1])
-        self.assertEqual(combined['missing_noise_exclusions'], 1)  # listing 4: inside 500 m, no band
-        self.assertEqual(queries.search_listings(self.connection)['missing_noise_exclusions'], 0)
+        self.assertEqual([r['listing_id'] for r in combined['rows']], [1, 4])  # nearest first
+        self.assertEqual(combined['quieter_than_mapped'], 1)  # listing 4: inside 500 m, no band
+        self.assertEqual(queries.search_listings(self.connection)['quieter_than_mapped'], 0)
 
     def test_district_accepts_name_any_case_number_ordinal_or_postcode(self):
         for district in ('Neubau', 'neubau', 7, '7', '7th', '7.', 'seventh', '1070', '7th district', '7. Bezirk'):

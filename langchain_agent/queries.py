@@ -13,8 +13,10 @@ from uuid import UUID
 
 SCHEMA = 'vienna_stay_assistant'
 PRICE_NOTICE = 'Prices are snapshot base prices, not date-specific quotes; no currency conversion is performed.'
-NOISE_NOTICE = ('Night noise is the worst Lnight road/rail band within 150 m of the listing; the filter compares the '
-                'start of the band (e.g. 50-54 starts at 50). Listings with no band (not mapped or noise data not loaded) are excluded.')
+NOISE_NOTICE = ('Night noise is the worst Lnight road/rail band within 150 m of the listing (2022 strategic noise '
+                'map); the filter compares the start of the band (e.g. 50-54 starts at 50). The map starts at 45 dB, so '
+                'listings without a band are quieter than 45 dB at night and pass the filter (counted in '
+                'quieter_than_mapped).')
 NOISE_MISSING_NOTICE = ('No night-noise data is loaded, so the noise filter was not applied; '
                         'use review search to judge how quiet a listing is.')
 ORDINALS = {word: number for number, word in enumerate((
@@ -170,7 +172,7 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
     excluded only when a price bound is supplied. near_landmark (a curated landmark
     name, case-insensitive) keeps listings within radius_m metres and sorts nearest
     first. max_night_noise_db keeps listings whose worst road/rail Lnight band starts
-    below that value; listings without any band are excluded and counted. Otherwise
+    below that value; listings without any band (quieter than the 45 dB start of the map) pass and are counted. Otherwise
     results sort by listing ID.
     """
     _integer(limit, 'limit', high=100)
@@ -221,9 +223,10 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
     if min_price is not None and max_price is not None and price_params[0] > price_params[1]:
         raise ValueError('min_price must not exceed max_price')
     noise_clause = len(prices)
-    if noise_limit is not None:  # GREATEST ignores NULLs, so it is NULL only when both bands are missing
-        prices.append("GREATEST((substring(l.lnight_road_band FROM '[0-9]+'))::integer, "
-                      "(substring(l.lnight_rail_band FROM '[0-9]+'))::integer) < %s")
+    if noise_limit is not None:
+        # GREATEST ignores NULLs, so it is NULL only when both bands are missing: below the 45 dB start of the map.
+        prices.append("coalesce(GREATEST((substring(l.lnight_road_band FROM '[0-9]+'))::integer, "
+                      "(substring(l.lnight_rail_band FROM '[0-9]+'))::integer), 0) < %s")
         price_params.append(noise_limit)
     columns = LISTING_COLUMNS + ', l.lnight_road_band, l.lnight_rail_band'
     order = ' ORDER BY l.listing_id'
@@ -249,15 +252,15 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
                 names = [r['name'] for r in s.fetch('SELECT name FROM vienna_stay_assistant.landmarks ORDER BY name')]
                 return {'landmark_found': False, 'known_landmarks': names, 'rows': [], 'total_matches': 0,
                         'limit': limit, 'offset': offset, 'has_more': False,
-                        'missing_price_exclusions': 0, 'missing_noise_exclusions': 0}
+                        'missing_price_exclusions': 0, 'quieter_than_mapped': 0}
             extra = {'landmark_found': True, 'landmark': found[0], 'radius_m': radius}
         missing_price = s.fetch('SELECT count(*) AS count' + base + ' AND l.price IS NULL', params)[0]['count'] \
             if (min_price is not None or max_price is not None) else 0
-        missing_noise = s.fetch('SELECT count(*) AS count' + base + ' AND l.lnight_road_band IS NULL '
+        unbanded = s.fetch('SELECT count(*) AS count' + base + ' AND l.lnight_road_band IS NULL '
                                 'AND l.lnight_rail_band IS NULL', params)[0]['count'] if noise_limit is not None else 0
         sql = 'SELECT ' + columns + base + ((' AND ' + ' AND '.join(prices)) if prices else '')
         return {**s.page(sql + order, (*params, *price_params), limit, offset), **extra,
-                'missing_price_exclusions': missing_price, 'missing_noise_exclusions': missing_noise}
+                'missing_price_exclusions': missing_price, 'quieter_than_mapped': unbanded}
     if noise_limit is not None:
         notices.append(NOISE_NOTICE)
     return _run(connection, 'search_listings', action, notices)
