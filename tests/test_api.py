@@ -1,6 +1,7 @@
+import json
 
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from fastapi.testclient import TestClient
 
@@ -137,6 +138,17 @@ class DependencyTests(unittest.TestCase):
 
 
 class AnswerApiTests(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        from pathlib import Path
+        import api.main
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        self.log = Path(self.folder.name) / "telemetry.jsonl"
+        patcher = patch.object(api.main, "TELEMETRY_LOG", self.log)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     ANSWER = {
         "status": "evidence_ready",
         "answer": {
@@ -190,6 +202,45 @@ class AnswerApiTests(unittest.TestCase):
         self.assertIsNone(body["answer"])
         response, _ = self.answer({"clarification": "Which year?"})
         self.assertEqual(response.json()["status"], "clarification_needed")
+
+    def test_stream_sends_stages_tokens_and_the_checked_answer_and_logs_timings(self):
+        def run(question, year, on_event=None):
+            on_event("stage", name="evidence", label="Searching")
+            on_event("token", text="Listing 7 ")
+            on_event("token", text="is in Alsergrund.")
+            return {**self.ANSWER, "timings": {"total_s": 12.5, "ttft_s": 1.5, "tokens_per_s": 16.0}}
+
+        app.dependency_overrides[get_answerer] = lambda: run
+        try:
+            with TestClient(app) as client:
+                response = client.post("/answer/stream", json={"question": "Quiet flats in Alsergrund"})
+        finally:
+            app.dependency_overrides.clear()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.headers["content-type"].startswith("text/event-stream"))
+        events = [(block.split("\n")[0][len("event: "):], json.loads(block.split("\n")[1][len("data: "):]))
+                  for block in response.text.strip().split("\n\n")]
+        self.assertEqual([kind for kind, _ in events], ["stage", "token", "token", "final"])
+        self.assertEqual("".join(data["text"] for kind, data in events if kind == "token"), "Listing 7 is in Alsergrund.")
+        final = events[-1][1]
+        self.assertEqual(final["answer"], "Listing 7 is in Alsergrund [listing 7].")
+        self.assertEqual(final["timings"]["ttft_s"], 1.5)
+        logged = json.loads(self.log.read_text().splitlines()[-1])
+        self.assertEqual((logged["mode"], logged["ttft_s"], logged["statements_removed"]), ("stream", 1.5, 1))
+        self.assertNotIn("Alsergrund", json.dumps(logged))  # no question or answer text in the log
+
+    def test_stream_failure_is_an_error_event_without_details(self):
+        def run(question, year, on_event=None):
+            raise RuntimeError("DSN secret")
+
+        app.dependency_overrides[get_answerer] = lambda: run
+        try:
+            with TestClient(app) as client:
+                response = client.post("/answer/stream", json={"question": "Quiet flats"})
+        finally:
+            app.dependency_overrides.clear()
+        self.assertIn("event: error", response.text)
+        self.assertNotIn("secret", response.text)
 
     def test_invalid_year_and_pipeline_failure(self):
         response, calls = self.answer(self.ANSWER, new_years_eve_year=1999)

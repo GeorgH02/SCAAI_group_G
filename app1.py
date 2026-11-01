@@ -1,11 +1,13 @@
 """Streamlit chat for the Vienna Stay Assistant: a thin client of the FastAPI backend.
 
-All models run behind the API (POST /answer), so this process loads none of them.
+All models run behind the API, so this process loads none of them. Answers stream from
+POST /answer/stream: pipeline stages and the draft answer appear live, then the guarded answer replaces it.
 Start the API first:   python -m uvicorn api.main:app --port 8000
 Then the chat:         python -m streamlit run app1.py
 Set ANSWER_API_URL if the API runs elsewhere.
 """
 
+import json
 import os
 
 import httpx
@@ -14,6 +16,8 @@ import streamlit as st
 ANSWER_API_URL = os.getenv("ANSWER_API_URL", "http://127.0.0.1:8000/answer")
 SNAPSHOT_YEAR = 2026
 TIMEOUT_SECONDS = 1800  # CPU-only runs can take several minutes
+PIPELINE_FAILED = ("The answer pipeline failed. Check that PostgreSQL, Qdrant and Ollama are running "
+                   "and see the API log.")
 
 STATUS_TEXT = {
     "no_evidence": "No matching evidence was found in the loaded data. Try a broader question or other dates.",
@@ -24,24 +28,53 @@ STATUS_TEXT = {
 }
 
 
-def ask(question, new_years_eve_year):
-    """POST the question to the API; returns (response body, error text)."""
+def ask(question, new_years_eve_year, on_stage=None, on_token=None):
+    """Stream the answer from the API; returns (final response body, error text).
+
+    on_stage(data) is called when a pipeline stage starts, on_token(text) for each draft answer piece.
+    """
     body = {"question": question}
     if new_years_eve_year:
         body["new_years_eve_year"] = int(new_years_eve_year)
     try:
-        response = httpx.post(ANSWER_API_URL, json=body, timeout=TIMEOUT_SECONDS)
+        with httpx.stream("POST", ANSWER_API_URL.rstrip("/") + "/stream", json=body,
+                          timeout=httpx.Timeout(TIMEOUT_SECONDS, connect=10)) as response:
+            if response.status_code == 422:
+                return None, "The question was not accepted (it must contain 1–4,000 characters)."
+            if response.status_code != 200:
+                return None, PIPELINE_FAILED
+            event = None
+            for line in response.iter_lines():
+                if line.startswith("event: "):
+                    event = line[len("event: "):]
+                elif line.startswith("data: "):
+                    data = json.loads(line[len("data: "):])
+                    if event == "stage" and on_stage:
+                        on_stage(data)
+                    elif event == "token" and on_token:
+                        on_token(data["text"])
+                    elif event == "final":
+                        return data, None
+                    elif event == "error":
+                        return None, PIPELINE_FAILED
     except httpx.ConnectError:
         return None, (f"The answer API is not reachable at {ANSWER_API_URL}. "
                       "Start it with `python -m uvicorn api.main:app --port 8000`.")
     except httpx.TimeoutException:
         return None, "The answer API did not respond in time."
-    if response.status_code == 422:
-        return None, "The question was not accepted (it must contain 1–4,000 characters)."
-    if response.status_code != 200:
-        return None, ("The answer pipeline failed. Check that PostgreSQL, Qdrant and Ollama are running "
-                      "and see the API log.")
-    return response.json(), None
+    return None, "The answer stream ended without a result."
+
+
+def timing_line(timings):
+    """Latency summary shown under each answer (also logged by the API)."""
+    parts = []
+    for key, label in (("total_s", "total"), ("ttft_s", "first token"), ("evidence_s", "evidence search"),
+                       ("reviews_s", "review search"), ("output_guard_s", "output guard")):
+        if timings.get(key) is not None:
+            parts.append(f"{label} {timings[key]:.1f} s")
+    if timings.get("tokens_per_s"):
+        parts.append(f"{timings['tokens_per_s']:.1f} tokens/s")
+    return "⏱ " + " · ".join(parts) if parts else ""
 
 
 def guard_status(result, question):
@@ -98,6 +131,8 @@ def render(message):
     if result:
         for line in message.get("guards", []):
             st.markdown(line)
+        if timing_line(result.get("timings") or {}):
+            st.caption(timing_line(result["timings"]))
         show_details(result)
 
 
@@ -137,11 +172,25 @@ if question:
     with st.chat_message("user"):
         st.markdown(question)
     with st.chat_message("assistant"):
-        with st.spinner("Checking guards, searching evidence and preparing a grounded answer..."):
-            result, error = ask(question, new_years_eve_year)
+        progress = st.status("Sending the question to the API...", expanded=True)
+        draft_box, draft = st.empty(), []
+
+        def on_stage(data):
+            progress.update(label=data["label"] + "...")
+            progress.write("• " + data["label"])
+
+        def on_token(text):
+            draft.append(text)
+            draft_box.markdown("_Draft, not yet checked:_\n\n" + "".join(draft) + " ▌")
+
+        result, error = ask(question, new_years_eve_year, on_stage, on_token)
+        draft_box.empty()
         if error:
+            progress.update(label="Failed", state="error", expanded=False)
             st.error(error)
         else:
+            total = (result.get("timings") or {}).get("total_s")
+            progress.update(label=f"Done in {total:.0f} s" if total else "Done", state="complete", expanded=False)
             if result.get("answer") is not None:
                 content = result["answer"]
             elif result["status"] in ("blocked", "clarification_needed"):

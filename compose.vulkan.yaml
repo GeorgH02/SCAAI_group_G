@@ -1,0 +1,9 @@
+# Optional: run Ollama on an AMD/Intel GPU (including integrated graphics) through Vulkan.
+#   podman compose -f compose.yaml -f compose.vulkan.yaml up -d ollama
+services:
+  ollama:
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      OLLAMA_VULKAN: "1"
+      OLLAMA_IGPU_ENABLE: "1"  # integrated GPUs are skipped by default

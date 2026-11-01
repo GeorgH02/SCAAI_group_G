@@ -54,5 +54,49 @@ class ReviewEvidenceTests(unittest.TestCase):
         self.assertEqual([e['review_id'] for e in evidence], [2])
 
 
+class FakeChunk:
+    def __init__(self, content):
+        self.content = content
+
+
+class FakeModel:
+    """Streams a fixed JSON text in small pieces, like Ollama does."""
+
+    def __init__(self, text):
+        self.text, self.bound = text, None
+
+    def bind(self, **kwargs):
+        self.bound = kwargs
+        return self
+
+    def stream(self, messages):
+        return (FakeChunk(self.text[i:i + 4]) for i in range(0, len(self.text), 4))
+
+
+@unittest.skipUnless(AVAILABLE, 'Install requirements.txt')
+class AnswerGenerationTests(unittest.TestCase):
+    def test_answer_text_streams_and_schema_is_enforced(self):
+        text = '{"answer": "Listing 7 is \\"quiet\\" [review 9]."}'
+        model, tokens = FakeModel(text), []
+        result = pipeline.grounded_answer(model, 'quiet?', [], [], on_token=tokens.append)
+        self.assertEqual(result['answer'], 'Listing 7 is "quiet" [review 9].')
+        self.assertEqual(''.join(tokens), result['answer'])
+        self.assertEqual(model.bound['response_format']['json_schema']['schema']['additionalProperties'], False)
+        self.assertEqual(result['stats']['output_tokens'], len(range(0, len(text), 4)))
+        self.assertIsNotNone(result['stats']['ttft_s'])
+
+    def test_output_that_breaks_the_schema_is_rejected(self):
+        for text in ('{}', '{"answer": "x", "citations": []}', '{"answer": ""}', '{"answer": 5}', 'not json'):
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                pipeline.grounded_answer(FakeModel(text), 'q', [], [])
+
+    def test_field_stream_handles_escapes_split_across_chunks(self):
+        raw = '{"answer": "caf\\u00e9 \\"x\\"\\n[review 1]", "citations": []}'
+        for size in (1, 2, 5):
+            stream = pipeline.AnswerFieldStream()
+            self.assertEqual(''.join(stream.feed(raw[i:i + size]) for i in range(0, len(raw), size)),
+                             'café "x"\n[review 1]')
+
+
 if __name__ == '__main__':
     unittest.main()

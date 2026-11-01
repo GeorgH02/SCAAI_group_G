@@ -7,6 +7,7 @@ hybrid retriever, lets the local model write an answer and checks it with the ou
 import json
 import os
 import re
+import time
 from calendar import monthrange
 from datetime import date
 from functools import lru_cache
@@ -21,6 +22,7 @@ from guardrails.evidence_guard import context_is_safe, remove_hostile_rows
 from guardrails.input_guard import InputGuard, llama_guard
 from guardrails.output_guard import OutputGuard, multilingual_nli
 from langchain_core.messages import HumanMessage, SystemMessage
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from langsmith import tracing_context
 from langchain_agent.workflow import EvidenceWorkflow, local_model, shield_names
 from langchain_agent.queries import get_host_listings, search_listings
@@ -35,6 +37,7 @@ SNAPSHOT_NOTES = (
     "The retrieved evidence does not answer this question.",
 )
 MAX_REVIEW_RESULTS = 20
+PROMPT_REVIEW_CHARS = 500
 MAX_SCOPE_LISTINGS = 1000
 MONTHS = {
     "january": 1, "jan": 1, "januar": 1,
@@ -213,7 +216,66 @@ def public_evidence(results):
     return output
 
 
-def grounded_answer(model, question, sql_evidence, review_evidence):
+class GroundedAnswer(BaseModel):
+    """The JSON the model must return; enforced while decoding and validated afterwards."""
+    model_config = ConfigDict(extra="forbid", strict=True)
+    answer: str = Field(min_length=1, description="Concise Markdown answer; every factual sentence ends with "
+                                                  "its citations such as [listing 123] or [review 456]")
+    # No separate citation list: the model listed dozens of IDs there (hundreds of tokens), and the output
+    # guard reads the citations from the answer text anyway.
+
+
+ANSWER_FORMAT = {"type": "json_schema", "json_schema": {
+    "name": "grounded_answer", "strict": True,
+    "schema": {**GroundedAnswer.model_json_schema(), "additionalProperties": False},
+}}
+
+
+class AnswerFieldStream:
+    """Decode the "answer" string of a JSON object while it is still being generated.
+
+    feed(chunk) returns the newly decoded answer text, so it can be shown token by token.
+    """
+
+    def __init__(self):
+        self.buffer, self.start, self.end, self.closed, self.decoded = "", None, None, False, ""
+
+    def feed(self, chunk):
+        self.buffer += chunk
+        if self.closed:
+            return ""
+        if self.start is None:
+            match = re.search(r'"answer"\s*:\s*"', self.buffer)
+            if not match:
+                return ""
+            self.start = self.end = match.end()
+        i = self.end
+        while i < len(self.buffer):
+            char = self.buffer[i]
+            if char == "\\":
+                step = 6 if self.buffer[i + 1:i + 2] == "u" else 2
+                if i + step > len(self.buffer):
+                    break  # escape not complete yet
+                i += step
+                continue
+            if char == '"':
+                self.closed = True
+                break
+            i += 1
+        self.end = i
+        try:
+            decoded = json.loads('"' + self.buffer[self.start:i] + '"')
+        except ValueError:
+            return ""
+        new, self.decoded = decoded[len(self.decoded):], decoded
+        return new
+
+
+def grounded_answer(model, question, sql_evidence, review_evidence, on_token=None):
+    """Let the model write the answer as schema-constrained JSON, streaming the answer text to on_token.
+
+    Returns {"answer": text, "stats": {...}} with time to first token and tokens per second.
+    """
     allowed_ids = {
         str(value)
         for review in review_evidence
@@ -241,7 +303,8 @@ def grounded_answer(model, question, sql_evidence, review_evidence):
     prompt = {
         "question": question,
         "sql_evidence": sql_evidence,
-        "review_evidence": review_evidence,
+        # Shortened for the model only (prompt reading dominates latency); the guard checks the full text.
+        "review_evidence": [{**review, "text": review["text"][:PROMPT_REVIEW_CHARS]} for review in review_evidence],
         "allowed_citation_ids": sorted(allowed_ids),
     }
     system = """Answer the user's Vienna accommodation question using only the supplied evidence.
@@ -252,23 +315,56 @@ supports that. Do not reveal personal information. End every sentence that state
 or listing IDs that support it, in square brackets, for example [listing 123] or [review 456]. Each
 sentence is checked against the evidence it cites and removed if unsupported, so cite precisely, copy
 numbers exactly as they appear in the evidence, and do not combine unrelated facts in one sentence.
-Return only JSON with exactly two keys:
-{"answer": "concise Markdown answer", "citations": ["123", "456"]}. Every citation must be an ID in
-allowed_citation_ids. If the evidence does not answer the question, say so plainly."""
+Return only JSON with exactly one key: {"answer": "concise Markdown answer"}. Every citation must be an ID
+in allowed_citation_ids. If the evidence does not answer the question, say so plainly."""
+    messages = [SystemMessage(system), HumanMessage(json.dumps(prompt, ensure_ascii=False))]
+    stream, raw, chunks = AnswerFieldStream(), "", 0
+    started, first_token = time.perf_counter(), None
     with tracing_context(enabled=False):
-        response = model.invoke([SystemMessage(system), HumanMessage(json.dumps(prompt, ensure_ascii=False))])
+        for chunk in model.bind(response_format=ANSWER_FORMAT).stream(messages):
+            text = chunk.content if isinstance(chunk.content, str) else ""
+            if not text:
+                continue
+            first_token = first_token or time.perf_counter()
+            raw += text
+            chunks += 1
+            new = stream.feed(text)
+            if new and on_token:
+                on_token(new)
+    finished = time.perf_counter()
     try:
-        parsed = json.loads(response.content)
-    except json.JSONDecodeError:
+        parsed = GroundedAnswer.model_validate_json(raw)
+    except ValidationError:
         raise ValueError("The local model did not return a valid grounded answer.") from None
-    if (not isinstance(parsed, dict) or not isinstance(parsed.get("answer"), str)
-            or not parsed["answer"].strip()):
+    if not parsed.answer.strip():
         raise ValueError("The local model did not return a valid grounded answer.")
+    generation = finished - (first_token or finished)
+    stats = {
+        "ttft_s": round((first_token or finished) - started, 2),
+        "generation_s": round(finished - started, 2),
+        "output_tokens": chunks,  # Ollama streams one token per chunk
+        "tokens_per_s": round(chunks / generation, 1) if generation > 0 else None,
+    }
     # Citations are checked sentence by sentence in the output guard.
-    return {"answer": parsed["answer"]}
+    return {"answer": parsed.answer, "stats": stats}
 
 
-def run_question(question, new_years_eve_year):
+def run_question(question, new_years_eve_year, on_event=None):
+    """Answer a question. on_event(kind, **data) receives progress: kind "stage" (name, label) and
+    "token" (text of the draft answer as it is generated). The result includes "timings" in seconds."""
+    started = time.perf_counter()
+    timings = {}
+    emit = on_event or (lambda kind, **data: None)
+
+    def stage(name, label):
+        emit("stage", name=name, label=label)
+        return time.perf_counter()
+
+    def finish(result):
+        timings["total_s"] = round(time.perf_counter() - started, 2)
+        result["timings"] = timings
+        return result
+
     if len(question) > 4000:
         raise ValueError("Please keep questions under 4,000 characters.")
     has_new_years_eve = re.search(r"new\s+year['’]?s\s+eve|silvester", question, re.IGNORECASE)
@@ -278,7 +374,9 @@ def run_question(question, new_years_eve_year):
             "clarification": "Which New Year's Eve do you mean? Choose a year in the sidebar, then send your question again."
         }
 
+    stage_start = stage("models", "Loading models (first request only)")
     runtime_masker, embed, input_guard, output_guard, rerank, model = load_runtime()
+    timings["models_s"] = round(time.perf_counter() - stage_start, 2)
     requested_listing_id = (
         int(match.group(0)) if (match := re.search(r"\b\d{5,20}\b", question)) else None
     )
@@ -308,7 +406,9 @@ def run_question(question, new_years_eve_year):
         if has_new_years_eve and not has_explicit_year:
             model_question += f" Use New Year's Eve on December 31, {new_years_eve_year}."
         masked_question = mask(clean_text(model_question))  # what the model sees; shown in the UI
+        stage_start = stage("evidence", "Input guards, then the model searches listings and prices")
         outcome = workflow.invoke(model_question)
+        timings["evidence_s"] = round(time.perf_counter() - stage_start, 2)
         if outcome["status"] in ("budget_exhausted", "context_limit") and outcome["results"]:
             # A search limit was reached after some evidence was found: answer from what was collected.
             outcome["status"] = "evidence_ready"
@@ -345,7 +445,7 @@ def run_question(question, new_years_eve_year):
             result["message"] = decision.message
             result["reason"] = decision.reason
             result["category"] = decision.category
-        return result
+        return finish(result)
 
     clean_question = mask(clean_text(model_question))
     review_question = mask(clean_text(question))
@@ -362,6 +462,7 @@ def run_question(question, new_years_eve_year):
         else None
     )
     review_until = requested_review_range[1] if requested_review_range else None
+    stage_start = stage("reviews", "Hybrid review search (vectors + full text, reranked)")
     client = QdrantClient(
         url=os.getenv("QDRANT_URL", "http://127.0.0.1:6353"),
         api_key=os.getenv("QDRANT_API_KEY"),
@@ -377,6 +478,7 @@ def run_question(question, new_years_eve_year):
             )
     finally:
         client.close()
+    timings["reviews_s"] = round(time.perf_counter() - stage_start, 2)
 
     safe_sql_evidence = public_evidence(outcome["results"])
     sql_matches = any(
@@ -384,17 +486,22 @@ def run_question(question, new_years_eve_year):
         for item in safe_sql_evidence
     )
     if not sql_matches and not review_evidence:
-        return {
+        return finish({
             "status": "no_evidence",
             "results": outcome["results"],
             "reviews": [],
             "masked_question": masked_question,
-        }
-    answer = grounded_answer(model, clean_question, safe_sql_evidence, review_evidence)
+        })
+    stage("generation", "Writing the answer")
+    answer = grounded_answer(model, clean_question, safe_sql_evidence, review_evidence,
+                             on_token=lambda text: emit("token", text=text))
+    timings.update(answer["stats"])
+    stage_start = stage("output_guard", "Checking every sentence against its evidence")
     check = output_guard.check(
         answer["answer"], safe_sql_evidence, review_evidence,
         question=clean_question, notes=SNAPSHOT_NOTES, keep_names=landmarks,
     )
+    timings["output_guard_s"] = round(time.perf_counter() - stage_start, 2)
     answer = {
         "answer": check.answer,
         "verified": check.verified,
@@ -405,10 +512,10 @@ def run_question(question, new_years_eve_year):
             for s in check.removed
         ],
     }
-    return {
+    return finish({
         "status": outcome["status"],
         "answer": answer,
         "reviews": review_evidence,
         "results": outcome["results"],
         "masked_question": masked_question,
-    }
+    })
