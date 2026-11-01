@@ -110,7 +110,8 @@ class EvidenceIndex:
         self.facts = []  # (kind, id, premise) for every piece of evidence, used to cite uncited sentences
         self.per_citation = per_citation
         notices = [n for item in sql_evidence for n in item.get('notices', [])]
-        self.notes = ' '.join(dict.fromkeys([*notes, *notices]))
+        self.note_list = list(dict.fromkeys([*notes, *notices]))
+        self.notes = ' '.join(self.note_list)
         for review in review_evidence:
             self.reviews[str(review['review_id'])].append(review.get('text', ''))
         for review_id, texts in list(self.reviews.items()):
@@ -122,10 +123,15 @@ class EvidenceIndex:
             if review.get('listing_id') is not None:
                 self.listings[str(review['listing_id'])].append(premise)
         for item in sql_evidence:
+            distances = [float(r['distance_m']) for r in item.get('rows', []) if r.get('distance_m') is not None]
             for row in item.get('rows', []):
                 if row.get('listing_id') is not None:
-                    self.listings[str(row['listing_id'])].insert(0, self._listing(row))
-                    self.facts.append(('listing', str(row['listing_id']), self._listing(row)))
+                    premise = self._listing(row, item.get('landmark'))
+                    if distances and row.get('distance_m') is not None and float(row['distance_m']) == min(distances):
+                        premise += (f' It is the closest of the listings found to {item.get("landmark") or "the landmark"}'
+                                    f', {row["distance_m"]} m away.')
+                    self.listings[str(row['listing_id'])].insert(0, premise)
+                    self.facts.append(('listing', str(row['listing_id']), premise))
             groups = item.get('groups', [])
             comparison = self._comparison(groups, item.get('district'))
             for group in groups:
@@ -146,12 +152,14 @@ class EvidenceIndex:
                     self.facts.append(('listing', str(stay['listing_id']), self._stay(item, stay)))
 
     @staticmethod
-    def _listing(row):
+    def _listing(row, landmark=None):
         parts = [f'Listing {row["listing_id"]}.']
         for key, value in row.items():
             if key == 'listing_id' or value is None:
                 continue
-            if key == 'host_is_superhost':
+            if key == 'distance_m' and landmark:
+                parts.append(f'It is {value} m from {landmark}.')
+            elif key == 'host_is_superhost':
                 parts.append('Its host is a superhost.' if value else 'Its host is not a superhost.')
             else:
                 parts.append(LISTING_FIELDS.get(key, key.replace('_', ' ') + ': {}.').format(_text(value)))
@@ -339,34 +347,34 @@ class OutputGuard:
     def _candidates(self, hypothesis, index, question):
         """Evidence to try for a sentence without a citation.
 
-        Returns notices, the closest single facts, and one combined premise of the top facts, because a
-        summary ("guests praise X and Y", "A costs 166 vs 149 for B") is often supported only jointly.
-        Every candidate must contain all numbers of the sentence.
+        Facts that contain every number of the sentence are always tried (the closest by meaning first);
+        notices are tried one by one; and one combined premise of the top facts is added, because a summary
+        ("guests praise X and Y", "A costs 166 vs 149 for B") is often supported only jointly.
         """
         wanted = {value for value, _ in numbers(hypothesis)} - {value for value, _ in numbers(question)}
-        facts = [f for f in index.facts if not wanted or set(v for v, _ in numbers(f[2])) & wanted
-                 or not missing_numbers(hypothesis, f[2] + ' ' + question)]
-        if facts and self.embed is not None:
-            vectors = self.embed([hypothesis, *(premise for _, _, premise in facts)])
-            ranked = sorted(zip(vectors[1:] @ vectors[0], range(len(facts))), reverse=True)
-            facts = [facts[i] for _, i in ranked[:self.candidates]]
-        elif facts:
-            words = set(re.findall(r'\w{4,}', hypothesis.lower()))
-            facts = sorted(facts, key=lambda f: -len(words & set(re.findall(r'\w{4,}', f[2].lower()))))
-            facts = facts[:self.candidates]
-        candidates = [f for f in facts if not missing_numbers(hypothesis, f[2] + ' ' + question)]
-        # For a sentence with numbers, combine the facts that hold those numbers; otherwise the closest facts.
-        with_numbers = [f for f in facts if wanted & {v for v, _ in numbers(f[2])}]
-        top = (with_numbers or facts)[:self.combine]
+        complete = [f for f in index.facts if not missing_numbers(hypothesis, f[2] + ' ' + question)]
+        candidates = self._closest(hypothesis, complete)[:self.candidates]
+        partial = [f for f in index.facts if wanted & {v for v, _ in numbers(f[2])}] if wanted else complete
+        top = self._closest(hypothesis, partial)[:self.combine]
         if len(top) > 1:
             combined = ' '.join(premise for _, _, premise in top)
             if not missing_numbers(hypothesis, combined + ' ' + question):
                 cited = [c for kind, identifier, _ in top
                          for c in (identifier if kind == 'combined' else [(kind, identifier)])]
                 candidates.append(('combined', list(dict.fromkeys(cited)), combined))
-        if index.notes and not missing_numbers(hypothesis, index.notes + ' ' + question):
-            candidates.insert(0, ('note', None, index.notes))
-        return candidates
+        notes = [('note', None, note) for note in index.note_list
+                 if not missing_numbers(hypothesis, note + ' ' + question)]
+        return notes + candidates
+
+    def _closest(self, hypothesis, facts):
+        """Facts ordered by similarity to the sentence (embeddings if available, else word overlap)."""
+        if not facts:
+            return []
+        if self.embed is not None:
+            vectors = self.embed([hypothesis, *(premise for _, _, premise in facts)])
+            return [facts[i] for _, i in sorted(zip(vectors[1:] @ vectors[0], range(len(facts))), reverse=True)]
+        words = set(re.findall(r'\w{4,}', hypothesis.lower()))
+        return sorted(facts, key=lambda f: -len(words & set(re.findall(r'\w{4,}', f[2].lower()))))
 
 
 def _drop_empty_sections(lines):

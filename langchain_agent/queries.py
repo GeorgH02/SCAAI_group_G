@@ -17,8 +17,9 @@ NOISE_NOTICE = ('Night noise is the worst Lnight road/rail band within 150 m of 
                 'map); the filter compares the start of the band (e.g. 50-54 starts at 50). The map starts at 45 dB, so '
                 'listings without a band are quieter than 45 dB at night and pass the filter (counted in '
                 'quieter_than_mapped).')
-NOISE_RELAXED_NOTICE = ('No matching listing has night noise below {limit} dB, so the quietest matching listings '
-                        'are returned instead, quietest first; say that they do not meet the requested level.')
+NOISE_RELAXED_NOTICE = ('There are no listings{where} with night noise below {limit} dB; the quietest matching '
+                        'listings have night noise of {quietest} dB and are returned instead, quietest first. '
+                        'Say that they do not meet the requested level.')
 # Start of the worst road/rail band in dB; NULL when the listing has neither (quieter than the map's 45 dB).
 NOISE_FLOOR_SQL = ("GREATEST((substring(l.lnight_road_band FROM '[0-9]+'))::integer, "
                    "(substring(l.lnight_rail_band FROM '[0-9]+'))::integer)")
@@ -27,6 +28,15 @@ NOISE_MISSING_NOTICE = ('No night-noise data is loaded, so the noise filter was 
 ORDINALS = {word: number for number, word in enumerate((
     'first second third fourth fifth sixth seventh eighth ninth tenth eleventh twelfth thirteenth fourteenth '
     'fifteenth sixteenth seventeenth eighteenth nineteenth twentieth twenty-first twenty-second twenty-third').split(), 1)}
+
+
+def district_name(session, value):
+    """Display name of a district given as number or name."""
+    if type(value) is not int:
+        return value
+    found = session.fetch('SELECT neighbourhood FROM vienna_stay_assistant.neighbourhoods WHERE district_number = %s',
+                          (value,))
+    return f'{found[0]["neighbourhood"]} (district {value})' if found else f'district {value}'
 
 
 def _district(value):
@@ -194,10 +204,11 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
     if listing_ids is not None:
         clauses.append('l.listing_id = ANY(%s::bigint[])')
         params.append(_ids(listing_ids))
+    district_value = None
     if district is not None:
-        expression, value = _district(district)
+        expression, district_value = _district(district)
         clauses.append(expression)
-        params.append(value)
+        params.append(district_value)
     if room_type is not None:
         clauses.append('l.room_type = %s')
         params.append(_text(room_type, 'room_type'))
@@ -277,7 +288,13 @@ def search_listings(connection, *, district=None, room_type=None, accommodates=N
                           + quietest, (*params, *other_params), limit, offset)
             relaxed = page['total_matches'] > 0
             if relaxed:
-                notices.append(NOISE_RELAXED_NOTICE.format(limit=noise_limit))
+                first = page['rows'][0] if offset == 0 else None
+                bands = [b for b in ((first or {}).get('lnight_road_band'), (first or {}).get('lnight_rail_band')) if b]
+                quietest = max(bands, key=lambda b: int(re.search(r'\d+', b).group())) if bands else 'unknown'
+                where = ''.join(part for part in (
+                    f' within {radius} m of {extra["landmark"]["name"]}' if extra else '',
+                    f' in {district_name(s, district_value)}' if district is not None else '') if part)
+                notices.append(NOISE_RELAXED_NOTICE.format(limit=noise_limit, where=where, quietest=quietest))
         return {**page, **extra, 'noise_filter_relaxed': relaxed,
                 'missing_price_exclusions': missing_price, 'quieter_than_mapped': unbanded}
     if noise_limit is not None:

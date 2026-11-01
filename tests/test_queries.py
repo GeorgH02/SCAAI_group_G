@@ -255,12 +255,15 @@ class QueryIntegrationTests(unittest.TestCase):
                                 "WHERE lnight_road_band IS NULL AND lnight_rail_band IS NULL")
         try:
             result = queries.search_listings(self.connection, max_night_noise_db=45)
+            district = queries.search_listings(self.connection, district=7, max_night_noise_db=40)
         finally:
             self.connection.execute("UPDATE vienna_stay_assistant.listings SET lnight_road_band = NULL "
                                     "WHERE listing_id IN (4, 5)")
         self.assertTrue(result['noise_filter_relaxed'])
         self.assertEqual([r['listing_id'] for r in result['rows']][:2], [1, 4])
-        self.assertTrue(any('below 45 dB' in n for n in result['notices']))
+        notice = next(n for n in result['notices'] if 'below 45 dB' in n)
+        self.assertIn('the quietest matching listings have night noise of 50-54 dB', notice)
+        self.assertTrue(any('in Neubau (district 7)' in n for n in district['notices']), district['notices'])
         self.assertFalse(queries.search_listings(self.connection, max_night_noise_db=55)['noise_filter_relaxed'])
 
     def test_aggregation_is_listing_weighted_and_fully_citable(self):

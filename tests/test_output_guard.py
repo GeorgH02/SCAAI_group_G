@@ -108,6 +108,23 @@ class OutputGuardTests(unittest.TestCase):
         result = OutputGuard(word_overlap).check('Superhost listings average 166.04 versus 149.04 for others.', sql, [])
         self.assertTrue(result.verified, [s.reason for s in result.removed])
 
+    def test_the_fact_with_the_sentences_numbers_is_tried_even_among_many_similar_facts(self):
+        rows = [{'listing_id': 100 + i, 'distance_m': str(300 + i), 'lnight_road_band': '70-74'} for i in range(15)]
+        rows.append({'listing_id': 200, 'distance_m': '162', 'lnight_road_band': '65-69'})
+        sql = [{'tool': 'search_listings', 'landmark': 'Wien Westbahnhof', 'rows': rows, 'notices': []}]
+        result = OutputGuard(word_overlap).check('The nearest one is 162 m away with 65-69 dB at night.', sql, [])
+        self.assertTrue(result.verified, [s.reason for s in result.removed])
+        self.assertEqual(result.citation_map[0]['citations'], ['listing 200'])
+        self.assertIn('closest of the listings found to Wien Westbahnhof', result.citation_map[0]['evidence'][0])
+        self.assertIn('162 m from Wien Westbahnhof', result.citation_map[0]['evidence'][0])
+
+    def test_each_notice_is_a_separate_candidate(self):
+        CALLS.clear()
+        sql = [{'tool': 'search_listings', 'rows': [], 'notices': ['Prices are snapshot base prices.',
+                                                                   'There are no listings in Neubau below 45 dB.']}]
+        OutputGuard(word_overlap).check('There are no listings in Neubau below 45 dB.', sql, [])
+        self.assertIn('There are no listings in Neubau below 45 dB.', [p for p, _ in CALLS])
+
     def test_withheld_fallback_is_not_masked(self):
         guard = OutputGuard(word_overlap, find_pii=finder('Withheld|withheld'))
         result = guard.check('It has a rooftop pool [review 9001].', SQL, REVIEWS)

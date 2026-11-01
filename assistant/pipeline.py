@@ -191,6 +191,8 @@ def public_evidence(results):
             ]
             item["total_matches"] = result.get("total_matches")
             item["has_more"] = result.get("has_more")
+            if isinstance(result.get("landmark"), dict):
+                item["landmark"] = result["landmark"].get("name")
         if "groups" in result:
             item["district"] = result.get("district")
             item["groups"] = [
