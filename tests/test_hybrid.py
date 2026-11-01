@@ -121,6 +121,18 @@ class HybridSearchTests(unittest.TestCase):
         self.assertEqual(len(result['rows']), 3)
         self.assertEqual(result['total_matches'], 10)
 
+    def test_listing_limit_is_100_by_default_and_can_be_raised_by_the_application(self):
+        ids = list(range(1, 302))
+        with self.assertRaises(ValueError):
+            HybridRetriever(Mock(), Mock(), 'c', Mock()).search('quiet', listing_ids=ids)
+        session = FakeSession([], {})
+        retriever = HybridRetriever(Mock(), fake_qdrant([]), 'c', lambda texts: [[0.1]], max_listing_ids=1000)
+        with patch('langchain_agent.queries._run', side_effect=lambda c, t, action, n: action(session)):
+            retriever.search('quiet', listing_ids=ids)
+        listing = next(c for c in retriever.qdrant.query_points.call_args.kwargs['query_filter'].must
+                       if c.key == 'listing_id')
+        self.assertEqual(len(listing.match.any), 301)
+
     def test_invalid_arguments_never_reach_the_stores(self):
         retriever = HybridRetriever(Mock(), Mock(), 'c', Mock())
         for kwargs in ({'query': '  '}, {'query': 'x', 'limit': 31}, {'query': 'x', 'listing_ids': []},

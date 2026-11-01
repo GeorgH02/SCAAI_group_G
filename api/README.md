@@ -30,6 +30,27 @@ The response contains the workflow status and a restricted set of evidence field
 
 The endpoint returns structured evidence rather than a generated conversational answer.
 
+### POST /answer
+
+Runs the full pipeline shared with the Streamlit chat (`assistant/pipeline.py`): guarded evidence search,
+hybrid review search, answer generation by the local model and the output guard.
+
+Request:
+```json
+{
+  "question": "How does the average price of superhost listings in Leopoldstadt compare to other hosts?",
+  "new_years_eve_year": 2026
+}
+```
+
+`new_years_eve_year` is optional and only used when a question mentions New Year's Eve without a year.
+
+The response contains `status`, the checked `answer` (only sentences supported by their cited evidence),
+`verified`, `pii_redacted`, `citations` (each kept sentence with its citations and evidence), `removed`
+(dropped sentences with the reason), the `reviews` used and the filtered `evidence`. Blocked or unclear
+questions return a `message` and no answer. On CPU a request takes several minutes; the first one also
+loads the models.
+
 ## Setup
 
 Install the project and API dependencies:

@@ -57,8 +57,10 @@ def bge_reranker(model='BAAI/bge-reranker-v2-m3', device=None, max_chars=2000):
 
 class HybridRetriever:
     def __init__(self, connection, qdrant, collection, embed, rerank=None, *,
-                 dense_k=50, lexical_k=50, rerank_k=30, rrf_k=RRF_K):
+                 dense_k=50, lexical_k=50, rerank_k=30, rrf_k=RRF_K, max_listing_ids=100):
+        # max_listing_ids: 100 for model tool calls; the application may search larger groups.
         self.connection, self.qdrant, self.collection = connection, qdrant, collection
+        self.max_listing_ids = max_listing_ids
         self.embed, self.rerank = embed, rerank
         self.dense_k, self.lexical_k, self.rerank_k, self.rrf_k = dense_k, lexical_k, rerank_k, rrf_k
 
@@ -85,7 +87,9 @@ class HybridRetriever:
     def search(self, query, *, listing_ids=None, language=None, since=DEFAULT_SINCE, until=None, limit=8):
         query = queries._text(query, 'query', maximum=500)
         queries._integer(limit, 'limit', high=30)
-        ids = queries._ids(listing_ids) if listing_ids is not None else None
+        if listing_ids is not None and not 1 <= len(listing_ids) <= self.max_listing_ids:
+            raise ValueError(f'listing_ids must contain between 1 and {self.max_listing_ids} IDs')
+        ids = sorted({queries._integer(v, 'listing_id') for v in listing_ids}) if listing_ids is not None else None
         if language is not None:
             language = queries._text(language, 'language', maximum=10)
         start, end = queries._day(since, 'since'), queries._day(until or SNAPSHOT_END.isoformat(), 'until')

@@ -68,3 +68,10 @@ def get_workflow():
         yield workflow
     finally:
         connection.close()
+
+
+def get_answerer():
+    """The full question-answering pipeline (shared with the Streamlit chat); models load on first use."""
+    from assistant.pipeline import run_question
+
+    return run_question

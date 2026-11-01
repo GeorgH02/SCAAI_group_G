@@ -38,8 +38,10 @@ After running the pipeline and starting Ollama, launch the local chat UI:
 .\.venv\Scripts\python.exe -m streamlit run app1.py
 ```
 
-The chat uses the existing guarded SQL workflow plus semantic retrieval from a
-completed Qdrant review-vector collection. The first request loads local privacy
+The chat uses the guarded SQL workflow plus the hybrid review search described below
+(Qdrant vectors and PostgreSQL full text over all loaded reviews, reranked); set `RERANK=0` to skip
+the reranker. The pipeline lives in `assistant/pipeline.py` and is shared with the API's
+`POST /answer` endpoint (see [api/README.md](api/README.md)). The first request loads local privacy
 and embedding models. Set `DATABASE_URL` to a dedicated SELECT-only PostgreSQL
 login when not using the local development database defaults. `QDRANT_URL`
 defaults to `http://127.0.0.1:6353`; use `QDRANT_API_KEY` if configured. Review
