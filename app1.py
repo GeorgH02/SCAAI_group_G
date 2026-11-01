@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import psycopg
+import httpx
 import streamlit as st
 from openai import APIError
 from qdrant_client import QdrantClient, models
@@ -345,25 +346,17 @@ def run_question(question, new_years_eve_year):
             )
         ]
         mask = shield_names(lambda text: runtime_masker.mask(clean_text(text)), landmarks)
-        guard_decisions = []
 
-        def check_input(masked_question):
-            decision = input_guard.check(masked_question)
-            guard_decisions.append(decision)
-            return decision.allowed
-
-        workflow = EvidenceWorkflow(
-            connection,
-            model,
-            mask=mask,
-            input_guard=check_input,
-            evidence_guard=lambda text: find_injection(text) is None,
-            clean_evidence=remove_hostile_rows,
-        )
         model_question = question
         if has_new_years_eve and not has_explicit_year:
             model_question += f" Use New Year's Eve on December 31, {new_years_eve_year}."
-        outcome = workflow.invoke(model_question)
+        response = httpx.post(
+            os.getenv("EVIDENCE_API_URL", "http://127.0.0.1:8000/evidence"),
+            json={"question": model_question},
+            timeout=420.0,
+        )
+        response.raise_for_status()
+        outcome = response.json()
         if outcome["status"] == "evidence_ready" and requested_listing_id:
             target_rows = [
                 row for result in outcome["results"]
@@ -382,13 +375,10 @@ def run_question(question, new_years_eve_year):
                     outcome["results"].append(get_host_listings(connection, host_id, limit=100))
 
     if outcome["status"] != "evidence_ready":
-        result = {"status": outcome["status"], "results": outcome["results"]}
-        if outcome["status"] == "blocked" and guard_decisions:
-            decision = guard_decisions[-1]
-            result["message"] = decision.message
-            result["reason"] = decision.reason
-            result["category"] = decision.category
-        return result
+        return {
+            "status": outcome["status"],
+            "results": outcome["results"],
+        }
 
     clean_question = mask(clean_text(model_question))
     review_question = mask(clean_text(question))
