@@ -95,6 +95,23 @@ class OutputGuardTests(unittest.TestCase):
         self.assertTrue(result.verified, [s.reason for s in result.removed])
         self.assertEqual(result.answer, 'Listing 101 is in Neubau [listing 101]. Guests say it is quiet at night [review 9001].')
 
+    def test_citation_lists_in_one_bracket_are_read(self):
+        reviews = [*REVIEWS, {'review_id': 9002, 'listing_id': 101, 'review_date': '2026-05-02', 'text': 'Quiet street.'}]
+        for cited in ('[review 9001, review 9002]', '[review 9001, 9002]'):
+            with self.subTest(cited=cited):
+                result = self.guard.check(f'Guests say it is quiet at night {cited}.', SQL, reviews)
+                self.assertTrue(result.verified, [s.reason for s in result.removed])
+                self.assertEqual(result.sentences[0].citations, [('review', '9001'), ('review', '9002')])
+                self.assertEqual(result.answer, 'Guests say it is quiet at night [review 9001] [review 9002].')
+
+    def test_long_citation_lists_are_cut_to_the_limit(self):
+        reviews = [{'review_id': 9000 + i, 'listing_id': 101, 'review_date': '2026-05-01', 'text': 'Very quiet.'}
+                   for i in range(1, 9)]
+        ids = ', '.join(f'review {9000 + i}' for i in range(1, 9))
+        result = self.guard.check(f'Guests say it is quiet [{ids}] [review 9001].', SQL, reviews)
+        self.assertEqual(len(result.sentences[0].citations), 5)
+        self.assertEqual(result.answer, 'Guests say it is quiet ' + ' '.join(f'[review {9000 + i}]' for i in range(1, 6)) + '.')
+
     def test_uncited_summary_can_be_supported_by_several_pieces_of_evidence(self):
         reviews = [*REVIEWS, {'review_id': 9002, 'listing_id': 101, 'review_date': '2026-05-02', 'text': 'Superhost was great.'}]
         result = OutputGuard(word_overlap).check('Guests praise the quiet nights and the superhost.', [], reviews)

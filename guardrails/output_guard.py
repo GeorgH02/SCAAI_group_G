@@ -17,7 +17,23 @@ DEFAULT_THRESHOLD = float(os.getenv('OUTPUT_NLI_THRESHOLD', '0.5'))
 NOTHING_VERIFIED = ('No statement in the generated answer could be verified against the retrieved evidence, '
                     'so it was withheld. Please check the evidence below or rephrase the question.')
 
-CITATION = re.compile(r'\[(?:(listing|review)\s+)?(\d+)\]', re.IGNORECASE)  # [listing 1], [review 2] or [3]
+# One bracket with one or more IDs: [listing 1], [review 2], [3] or [review 4, review 5] / [review 4, 5]
+CITATION = re.compile(r'\[\s*(?:(?:listing|review)\s+)?\d+(?:\s*,\s*(?:(?:listing|review)\s+)?\d+)*\s*\]',
+                      re.IGNORECASE)
+CITATION_ITEM = re.compile(r'(?:(listing|review)\s+)?(\d+)', re.IGNORECASE)
+MAX_CITATIONS = 5  # per sentence; models sometimes list every retrieved ID
+
+
+def _citations(text):
+    """(kind, id) pairs of a text in order, without repeats; a bare ID takes the kind before it in its bracket."""
+    found = []
+    for bracket in CITATION.finditer(text):
+        kind = None
+        for item in CITATION_ITEM.finditer(bracket.group(0)):
+            kind = item.group(1).lower() if item.group(1) else kind
+            if (kind, item.group(2)) not in found:
+                found.append((kind, item.group(2)))
+    return found
 NUMBER = re.compile(r'\d+(?:[.,]\d+)*')
 LINE_PREFIX = re.compile(r'^(\s*(?:#{1,6}\s+|[-*+]\s+|\d+[.)]\s+)?)')
 SENTENCE_BREAK = re.compile(r'(?<=[.!?])\s+(?=[\[A-ZÄÖÜ0-9"„(*])')
@@ -288,7 +304,7 @@ class OutputGuard:
                 sentences[-1] += ' ' + piece  # a citation written after the full stop
             else:
                 sentences.append(piece)
-        return prefix, [CheckedSentence(s, [(k.lower(), i) for k, i in CITATION.findall(s)], False)
+        return prefix, [CheckedSentence(s, _citations(s), False)
                         for s in sentences]
 
     def _verify(self, claims, index, question):
@@ -305,8 +321,17 @@ class OutputGuard:
                     owners.append((claim, candidate))
                 continue
             premises = []
-            claim.citations = [(kind or index.kind_of(identifier), identifier) for kind, identifier in claim.citations]
-            claim.text = CITATION.sub(lambda m: f'[{m.group(1) or index.kind_of(m.group(2))} {m.group(2)}]', claim.text)
+            resolved = []
+            for kind, identifier in claim.citations:
+                if (kind or index.kind_of(identifier), identifier) not in resolved:
+                    resolved.append((kind or index.kind_of(identifier), identifier))
+            claim.citations = resolved[:MAX_CITATIONS]
+            # One bracket per citation, at the first citation's place; IDs beyond the limit are dropped.
+            tags = ' '.join(f'[{kind} {identifier}]' for kind, identifier in claim.citations)
+            first = CITATION.search(claim.text)
+            claim.text = (claim.text[:first.start()] + tags
+                          + CITATION.sub('', claim.text[first.end():]))
+            claim.text = re.sub(r'\s+([.,;:!?])', r'\1', re.sub(r'[ \t]{2,}', ' ', claim.text)).rstrip()
             for kind, identifier in claim.citations:
                 found = index.premises(kind, identifier)
                 if not found:

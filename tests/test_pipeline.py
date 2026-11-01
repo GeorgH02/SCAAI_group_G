@@ -1,6 +1,7 @@
 """Review search per evidence scope in the shared pipeline, with a fake retriever (no models or services)."""
 
 import importlib.util
+import json
 import unittest
 
 AVAILABLE = all(importlib.util.find_spec(m) for m in ('sentence_transformers', 'qdrant_client', 'presidio_analyzer'))
@@ -86,6 +87,16 @@ class AnswerGenerationTests(unittest.TestCase):
         self.assertEqual(schema['properties']['answer']['maxLength'], pipeline.ANSWER_MAX_CHARS)
         self.assertEqual(result['stats']['output_tokens'], len(range(0, len(text), 4)))
         self.assertIsNotNone(result['stats']['ttft_s'])
+
+    def test_price_groups_give_the_model_one_id_to_cite(self):
+        groups = [{'host_is_superhost': True, 'average_base_price': '166.04', 'listing_ids': [11, 12, 13]},
+                  {'host_is_superhost': False, 'average_base_price': '149.04', 'listing_ids': []}]
+        sql = [{'tool': 'compare_host_prices', 'groups': groups}]
+        prompt = json.loads(pipeline.answer_messages('q', sql, [])[1].content)
+        self.assertEqual(prompt['sql_evidence'][0]['groups'][0]['cite_as'], 'listing 11')
+        self.assertNotIn('listing_ids', prompt['sql_evidence'][0]['groups'][0])
+        self.assertNotIn('cite_as', prompt['sql_evidence'][0]['groups'][1])
+        self.assertEqual(sql[0]['groups'][0]['listing_ids'], [11, 12, 13])  # the guard keeps the full evidence
 
     def test_output_that_breaks_the_schema_is_rejected(self):
         for text in ('{}', '{"answer": "x", "citations": []}', '{"answer": ""}', '{"answer": 5}', 'not json'):

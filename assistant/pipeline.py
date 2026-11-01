@@ -276,9 +276,21 @@ class AnswerFieldStream:
 
 def answer_messages(question, sql_evidence, review_evidence):
     """System and user message for the grounded answer (shared with the quantization benchmark)."""
+    def for_model(item):
+        # A price group lists up to 20 example listings; the model cited all of them for one average. The output
+        # guard links the group's averages to each of its listings, so one ID is enough to cite them.
+        if not item.get("groups"):
+            return item
+        groups = []
+        for group in item["groups"]:
+            ids = group.get("listing_ids") or []
+            group = {key: value for key, value in group.items() if key != "listing_ids"}
+            groups.append(group | ({"cite_as": f"listing {ids[0]}"} if ids else {}))
+        return {**item, "groups": groups}
+
     prompt = {
         "question": question,
-        "sql_evidence": sql_evidence,
+        "sql_evidence": [for_model(item) for item in sql_evidence],
         # Shortened for the model only (prompt reading dominates latency); the guard checks the full text.
         "review_evidence": [{**review, "text": review["text"][:PROMPT_REVIEW_CHARS]} for review in review_evidence],
     }
@@ -292,7 +304,8 @@ supports that. Do not reveal personal information. End every sentence that state
 or listing IDs that support it, in square brackets, for example [listing 123] or [review 456]. Each
 sentence is checked against the evidence it cites and removed if unsupported, so cite precisely, copy
 numbers exactly as they appear in the evidence, and do not combine unrelated facts in one sentence.
-Cite at most three IDs per sentence, and only IDs that appear in the evidence. Write short sentences or
+Cite at most three IDs per sentence, and only IDs that appear in the evidence. To cite a group average,
+use only that group's cite_as ID. Write short sentences or
 bullet points, not tables; do not copy review text, summarise it. Keep the answer under 200 words.
 Return only JSON with exactly one key: {"answer": "concise Markdown answer"}. If the evidence does not
 answer the question, say so plainly."""

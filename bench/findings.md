@@ -1,33 +1,55 @@
-## Findings (2026-11-01, Radeon 780M iGPU via Vulkan)
+## Hardware and result
 
-**Recommendation: use INT8 (Q8_0) for the demo** (`OLLAMA_MODEL=qwen2.5:7b-instruct-q8_0`). With the fixed
-prompt (run 2) it had the most verified sentences (31/34, 91%), valid JSON in 8/9 runs, and writes 1.8× faster
-than FP16. INT4 writes another 1.5× faster but produced valid JSON in only 4/9 runs, and 3/13 of its sentences
-were verified.
+Tested on 1 November 2026 on a laptop with an AMD Radeon 780M (integrated GPU, Vulkan backend). All three
+models fit completely into GPU memory.
 
-- **Speed follows model size.** Generation: FP16 5.3, INT8 9.6, INT4 14.5 tokens/s. Size × speed is
-  75–79 GiB/s for all three, so generation on this iGPU is limited by memory bandwidth.
-- **Time to first token barely depends on precision** (32–37 s): almost all of it is reading the 7,400–8,000
-  prompt tokens at about 230 tokens/s.
-- **The prompt mattered more than precision for reliability.** Run 1 listed every allowed citation ID in the
-  prompt; models copied it out until the 1,024-token limit (INT4 in 6/9 runs). Removing the list and asking
-  for at most three citations per sentence, no tables and under 200 words brought FP16 and INT8 answers
-  down to about 100–200 tokens (INT8 scenario A: 569). Valid JSON rose from 7 to 9 (FP16) and from 2 to 4
-  (INT4) out of 9; INT8 stayed at 8.
-- **INT4 still loops.** It ignores the three-citation rule and lists every review or listing ID in one
-  sentence (scenarios B and C). Its scenario A answer was also wrong: it called the two free listings
-  "availability unknown", so the output guard removed every sentence.
-- **Lower precision did not mean more false facts at INT8.** The output guard verified 91% of INT8 sentences
-  and 82% of FP16 sentences. Both rates come from small samples (34 and 39 sentences).
+We use INT8 for the demo (`OLLAMA_MODEL=qwen2.5:7b-instruct-q8_0`). In run 2 it had the best share of
+verified sentences (31 of 34) and valid JSON in 8 of 9 runs, and it generates about 1.8 times faster than
+FP16. INT4 is faster again (about 1.5 times INT8), but only 4 of its 9 answers were valid JSON and only 3 of
+13 sentences were verified.
 
-Changes after run 2 (not yet measured over all scenarios):
-- The answer schema now caps the answer at 1,500 characters (`maxLength`, enforced while decoding). In a
-  single test of INT4 on scenarios B and C, both answers were valid JSON; B still spent most of its length on
-  IDs.
-- Still open: the price comparison in scenario B carries every listing ID of each group (hundreds) into the
-  answer prompt; sending a few example IDs and a count should stop the remaining ID lists.
+## Observations
 
-Bugs found while benchmarking (fixed): the 1,024-token output limit never reached Ollama (LangChain sends it
-as `max_completion_tokens`, which Ollama ignores), and the privacy masker turned some district names
-(Margareten, Favoriten, Alsergrund) into `<PERSON_n>` inside tool arguments, so those district searches
-returned nothing.
+Generation speed is roughly proportional to model size: 5.3 tokens/s for FP16, 9.6 for INT8 and 14.5 for
+INT4. Size times speed gives about the same value for all three (75 to 79 GiB/s), so memory bandwidth is
+the limit on this iGPU.
+
+Time to first token is between 32 and 37 s for every precision. Most of it is spent reading the prompt
+(7,400 to 8,000 tokens at about 230 tokens/s), so quantization does not help much there. Shorter prompts
+would.
+
+The prompt had a bigger effect on reliability than the precision. In run 1 the prompt contained a list of
+all allowed citation IDs, and the models often copied that list into the answer until they hit the token
+limit (INT4 in 6 of 9 runs). For run 2 we removed the list and asked for at most three citations per
+sentence, no tables and less than 200 words. FP16 and INT8 answers then mostly stayed between 100 and 200
+tokens (one exception: INT8 on scenario A with 569). Valid JSON went from 7 to 9 out of 9 for FP16 and from
+2 to 4 for INT4. INT8 stayed at 8.
+
+INT4 kept looping in run 2. It ignores the three citation rule and puts every review or listing ID into one
+sentence (scenarios B and C). Its answer to scenario A was also wrong: it said the availability of the two
+free listings was unknown, and the output guard removed all of its sentences.
+
+We did not see INT8 make more mistakes than FP16. The guard verified 91 % of the INT8 sentences and 82 % of
+the FP16 sentences, but with 34 and 39 sentences the samples are small.
+
+## Changes after run 2
+
+These were only tested on single scenarios, not with a full benchmark run.
+
+- The JSON schema limits the answer to 1,500 characters. llama.cpp enforces this while generating, so the
+  JSON is always closed. With the limit, INT4 produced valid JSON for scenarios B and C in a single test.
+- In the prompt each price group now has one ID to cite (`cite_as`) instead of 20 example listing IDs. The
+  output guard also understands citation lists like `[review 1, review 2]` now and keeps at most five per
+  sentence. We ran scenario B three times per model: INT8 and INT4 were valid in 3 of 3 runs (run 2: 2 of 3
+  and 0 of 3), and all sentences were verified.
+- Still open: in the sentence about review themes the models list around 20 review IDs, which costs about
+  500 output tokens or 70 to 90 s. Short labels for the reviews in the prompt would probably fix this.
+
+## Bugs found during the benchmark
+
+- The 1,024 token limit never reached Ollama. LangChain sends it as `max_completion_tokens`, which Ollama
+  ignores, so a looping answer ran until the 400 s timeout.
+- The PII masker treated some district names (Margareten, Favoriten, Alsergrund) as person names and
+  replaced them in the tool arguments, so searches in those districts found nothing.
+
+Both are fixed.
